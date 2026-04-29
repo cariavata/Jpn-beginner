@@ -189,21 +189,21 @@ export default function App() {
     const unsubApp = onSnapshot(doc(db, 'settings', 'app'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.greetingsData !== undefined) setGreetingsData(data.greetingsData);
-        if (data.travelData !== undefined) setTravelData(data.travelData);
-        if (data.dailyData !== undefined) setDailyData(data.dailyData);
-        if (data.hiraganaData !== undefined) setHiraganaData(data.hiraganaData);
-        if (data.katakanaData !== undefined) setKatakanaData(data.katakanaData);
-        if (data.siteTitle !== undefined) setSiteTitle(data.siteTitle);
-        if (data.siteSubtitle !== undefined) setSiteSubtitle(data.siteSubtitle);
-        if (data.tabLetterLabel !== undefined) setTabLetterLabel(data.tabLetterLabel);
-        if (data.tabGreetingLabel !== undefined) setTabGreetingLabel(data.tabGreetingLabel);
-        if (data.tabTravelLabel !== undefined) setTabTravelLabel(data.tabTravelLabel);
-        if (data.tabDailyLabel !== undefined) setTabDailyLabel(data.tabDailyLabel);
-        if (data.tabNewsLabel !== undefined) setTabNewsLabel(data.tabNewsLabel);
-        if (data.footerText !== undefined) setFooterText(data.footerText);
-        if (data.naverMeta !== undefined) setNaverMeta(data.naverMeta);
-        if (data.popupInfo !== undefined) setPopupInfo(data.popupInfo);
+        if (data.greetingsData !== undefined) setGreetingsData(data.greetingsData ?? INITIAL_GREETINGS_DATA);
+        if (data.travelData !== undefined) setTravelData(data.travelData ?? INITIAL_TRAVEL_DATA);
+        if (data.dailyData !== undefined) setDailyData(data.dailyData ?? INITIAL_DAILY_DATA);
+        if (data.hiraganaData !== undefined) setHiraganaData(data.hiraganaData ?? []);
+        if (data.katakanaData !== undefined) setKatakanaData(data.katakanaData ?? []);
+        if (data.siteTitle !== undefined) setSiteTitle(data.siteTitle ?? '');
+        if (data.siteSubtitle !== undefined) setSiteSubtitle(data.siteSubtitle ?? '');
+        if (data.tabLetterLabel !== undefined) setTabLetterLabel(data.tabLetterLabel ?? '');
+        if (data.tabGreetingLabel !== undefined) setTabGreetingLabel(data.tabGreetingLabel ?? '');
+        if (data.tabTravelLabel !== undefined) setTabTravelLabel(data.tabTravelLabel ?? '');
+        if (data.tabDailyLabel !== undefined) setTabDailyLabel(data.tabDailyLabel ?? '');
+        if (data.tabNewsLabel !== undefined) setTabNewsLabel(data.tabNewsLabel ?? '');
+        if (data.footerText !== undefined) setFooterText(data.footerText ?? '');
+        if (data.naverMeta !== undefined) setNaverMeta(data.naverMeta ?? '');
+        if (data.popupInfo !== undefined) setPopupInfo(data.popupInfo ?? {show: false, content: ''});
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
@@ -1077,8 +1077,8 @@ function SectionHeader({ title, color }: { title: string, color: string }) {
 
 
 function LetterFormContent({editingLetter, close, setHiraganaData, setKatakanaData}: any) {
-  const [jp, setJp] = useState(editingLetter.item?.jp || '');
-  const [ko, setKo] = useState(editingLetter.item?.ko || '');
+  const [jp, setJp] = useState(editingLetter?.item?.jp ?? '');
+  const [ko, setKo] = useState(editingLetter?.item?.ko ?? '');
 
   const handleSave = () => {
     const newItem = (jp && ko) ? { jp, ko } : null;
@@ -1178,9 +1178,9 @@ const SentenceCard: FC<SentenceCardProps> = ({ item, index, onPlay, isAdmin, isS
 }
 
 function FormContent({editingItem, isAddingMode, close, activeTab, setGreetingsData, setTravelData, setDailyData}: any) {
-  const [jp, setJp] = useState(editingItem ? editingItem?.item?.jp : '');
-  const [ko, setKo] = useState(editingItem ? editingItem?.item?.ko : '');
-  const [mean, setMean] = useState(editingItem ? editingItem?.item?.mean : '');
+  const [jp, setJp] = useState(editingItem?.item?.jp ?? '');
+  const [ko, setKo] = useState(editingItem?.item?.ko ?? '');
+  const [mean, setMean] = useState(editingItem?.item?.mean ?? '');
 
   const handleSave = () => {
     if(!jp || !ko || !mean) return alert('모든 칸을 입력해주세요.');
