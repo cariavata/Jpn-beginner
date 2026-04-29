@@ -12,7 +12,7 @@ service cloud.firestore {
     function existing() { return resource.data; }
 
     function isValidAppData(data) {
-      return data.keys().hasAll(['siteTitle']) && data.keys().size() >= 1;
+      return data.keys().hasAny(['siteTitle', 'robotsTxt']) && data.keys().size() >= 1;
     }
 
     match /settings/{settingId} {
@@ -22,7 +22,7 @@ service cloud.firestore {
     }
 
     function isValidAppStats(data) {
-      return data.keys().hasAll(['visitors']);
+      return data.keys().hasAny(['visitors', 'referrers', 'devices', 'browsers', 'keywords']) && data.keys().size() >= 1;
     }
 
     match /stats/{dateId} {

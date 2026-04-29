@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef, FC } from 'react';
 import { INITIAL_GREETINGS_DATA, INITIAL_TRAVEL_DATA, INITIAL_DAILY_DATA } from './initialData';
 import { Volume2, Plane, Home, MessageSquare, Info, Music, Music2, Pencil, Trash2, Plus, X, Lock, Settings, BarChart2, Monitor, Smartphone, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 
@@ -234,28 +234,19 @@ export default function App() {
       else if (ua.includes('Firefox')) browser = 'Firefox';
       
       const statDocRef = doc(db, 'stats', today);
-      getDoc(statDocRef).then(docSnap => {
-        let stats = docSnap.exists() ? docSnap.data() : { visitors: 0, referrers: {}, keywords: {}, devices: {}, browsers: {} };
-        stats.visitors = (stats.visitors || 0) + 1;
-        stats.referrers = stats.referrers || {};
-        stats.referrers[refKey] = (stats.referrers[refKey] || 0) + 1;
-        
-        if (query) {
-           stats.keywords = stats.keywords || {};
-           stats.keywords[query] = (stats.keywords[query] || 0) + 1;
-        }
-
-        stats.devices = stats.devices || {};
-        stats.devices[device] = (stats.devices[device] || 0) + 1;
-
-        stats.browsers = stats.browsers || {};
-        stats.browsers[browser] = (stats.browsers[browser] || 0) + 1;
-
-        setDoc(statDocRef, stats).then(() => {
-          setSiteStats(prev => ({...prev, [today]: stats}));
-        }).catch(err => {
-           // Allow fail if not admin
-        });
+      import('firebase/firestore').then(({ setDoc, increment }) => {
+         const updates: any = {
+            visitors: increment(1),
+            referrers: { [refKey]: increment(1) },
+            devices: { [device]: increment(1) },
+            browsers: { [browser]: increment(1) }
+         };
+         if (query) {
+            updates.keywords = { [query]: increment(1) };
+         }
+         setDoc(statDocRef, updates, { merge: true }).catch(err => {
+            // Silently fail for tracking
+         });
       });
     }
 
@@ -482,21 +473,31 @@ export default function App() {
   };
 
   const handleAdminLogin = async () => {
-    if (adminId === 'cariavata' && adminPwd === 'dudwls3098!!') {
-      setIsAdmin(true);
-      setShowAdminLogin(false);
-      setAdminId('');
-      setAdminPwd('');
-      // Load all stats when admin logs in
-      import('firebase/firestore').then(({ collection, getDocs }) => {
-        getDocs(collection(db, 'stats')).then(snapshot => {
-           let allStats: any = {};
-           snapshot.forEach(doc => { allStats[doc.id] = doc.data(); });
-           setSiteStats(allStats);
-        }).catch(err => handleFirestoreError(err, OperationType.LIST, 'stats'));
-      });
-    } else {
-      alert('아이디 또는 비밀번호가 틀렸습니다.');
+    try {
+      const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      if (result.user && result.user.email === 'cariavata1@gmail.com') {
+        setIsAdmin(true);
+        setShowAdminLogin(false);
+        // Load all stats when admin logs in
+        import('firebase/firestore').then(({ collection, getDocs }) => {
+          getDocs(collection(db, 'stats')).then(snapshot => {
+             let allStats: any = {};
+             snapshot.forEach(doc => { allStats[doc.id] = doc.data(); });
+             setSiteStats(allStats);
+          }).catch(err => handleFirestoreError(err, OperationType.LIST, 'stats'));
+        });
+      } else {
+        alert('관리자 계정이 아닙니다.');
+        auth.signOut();
+      }
+    } catch (e: any) {
+      console.error(e);
+      if (e.code !== 'auth/popup-closed-by-user') {
+        alert('로그인에 실패했습니다.');
+      }
     }
   };
 
@@ -1123,9 +1124,7 @@ export default function App() {
               <h2 className="text-2xl font-black text-gray-800">관리자 접속</h2>
             </div>
             <div className="space-y-4">
-              <input type="text" value={adminId} onChange={e=>setAdminId(e.target.value)} placeholder="아이디" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-rose-400 focus:outline-none"/>
-              <input type="password" value={adminPwd} onChange={e=>setAdminPwd(e.target.value)} placeholder="비밀번호" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-rose-400 focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}/>
-              <button onClick={handleAdminLogin} className="w-full bg-rose-400 text-white font-bold py-3 rounded-xl shadow-md hover:bg-rose-500 transition-colors">로그인</button>
+              <button onClick={handleAdminLogin} className="w-full bg-rose-400 text-white font-bold py-3 rounded-xl shadow-md hover:bg-rose-500 transition-colors">구글 계정으로 로그인</button>
             </div>
           </motion.div>
         </div>
