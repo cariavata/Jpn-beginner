@@ -1156,7 +1156,7 @@ const SentenceCard: FC<SentenceCardProps> = ({ item, index, onPlay, isAdmin, isS
         <div className="flex flex-col">
           <span className="text-sm md:text-xl font-bold text-gray-800 leading-tight mb-0.5 truncate">{item.jp}</span>
           <span className="text-[10px] md:text-xs text-gray-400 font-medium italic tracking-wide lowercase mb-1 leading-none">{item.ko}</span>
-          <span className="text-xs md:text-base font-black text-[#FF6B6B] leading-tight truncate">{item.mean}</span>
+          <span className="text-xs md:text-base font-black text-[#FF6B6B] leading-tight truncate">{item.mean || (item as any).단어}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -1180,7 +1180,7 @@ const SentenceCard: FC<SentenceCardProps> = ({ item, index, onPlay, isAdmin, isS
 function FormContent({editingItem, isAddingMode, close, activeTab, setGreetingsData, setTravelData, setDailyData}: any) {
   const [jp, setJp] = useState(editingItem?.item?.jp ?? '');
   const [ko, setKo] = useState(editingItem?.item?.ko ?? '');
-  const [mean, setMean] = useState(editingItem?.item?.mean ?? '');
+  const [mean, setMean] = useState(editingItem?.item?.mean ?? editingItem?.item?.단어 ?? '');
 
   const handleSave = () => {
     if(!jp || !ko || !mean) return alert('모든 칸을 입력해주세요.');
