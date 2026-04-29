@@ -358,31 +358,52 @@ export default function App() {
   }, []);
 
   const speakText = useCallback((text: string) => {
-    if (!ttsAudioRef.current) return;
-    
-    // Always use Google Translate TTS via HTML5 Audio for maximum compatibility (iOS, Kakao, Naver)
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ja&client=tw-ob`;
-    
-    ttsAudioRef.current.pause();
-    ttsAudioRef.current.currentTime = 0;
-    ttsAudioRef.current.src = url;
-    
-    ttsAudioRef.current.onplay = () => {
-      // fade audio is removed since we have removed BGM
+    const playAudioFallback = (text: string) => {
+      if (!ttsAudioRef.current) return;
+      const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=ja&q=${encodeURIComponent(text)}`;
+      
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current.currentTime = 0;
+      ttsAudioRef.current.src = url;
+      
+      ttsAudioRef.current.play().catch(err => {
+        console.error("Fallback TTS audio blocked by browser:", err);
+      });
     };
-    
-    const restoreVolume = () => {};
-    
-    ttsAudioRef.current.onended = restoreVolume;
-    ttsAudioRef.current.onerror = (e) => {
-      console.error("TTS Error:", e);
-      restoreVolume();
-    };
-    
-    ttsAudioRef.current.play().catch(err => {
-      console.error("TTS audio blocked by browser:", err);
-      restoreVolume();
-    });
+
+    const isMobileInAppOrNoTTS = typeof window === 'undefined' || !('speechSynthesis' in window) || /KAKAOTALK|NAVER|Line|Instagram|FBAN|FBAV/i.test(navigator.userAgent);
+
+    if (isMobileInAppOrNoTTS) {
+      playAudioFallback(text);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      
+      const jaVoice = voicesRef.current.find(voice => 
+        voice.lang === 'ja-JP' || voice.lang === 'ja_JP' || voice.lang.includes('ja')
+      );
+      
+      if (jaVoice) {
+        utterance.voice = jaVoice;
+      }
+
+      utterance.rate = 0.85;
+      utterance.pitch = 1.0;
+      
+      utterance.onerror = (e) => {
+        console.error("TTS Error:", e);
+        playAudioFallback(text);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error("TTS Error:", err);
+      playAudioFallback(text);
+    }
   }, []);
 
   const handleAdminLogin = async () => {
