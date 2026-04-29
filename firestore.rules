@@ -30,5 +30,16 @@ service cloud.firestore {
       allow create: if isValidId(dateId) && isValidAppStats(incoming());
       allow update: if isValidAppStats(incoming());
     }
+
+    function isValidNewsData(data) {
+      return data.keys().hasAny(['title', 'content', 'createdAt']);
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow create: if isValidId(newsId) && isValidNewsData(incoming());
+      allow update: if isValidNewsData(incoming());
+      allow delete: if true;
+    }
   }
 }

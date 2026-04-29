@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
+import { NewsSection } from './NewsSection';
 
 // --- Data Section ---
 
@@ -52,6 +53,14 @@ interface SentenceItem {
   jp: string;
   ko: string;
   mean: string;
+}
+
+interface NewsPost {
+  id?: string;
+  title: string;
+  content: string;
+  thumbnail?: string;
+  createdAt: number;
 }
 
 
@@ -122,6 +131,7 @@ export default function App() {
   const [tabGreetingLabel, setTabGreetingLabel] = useState(() => localStorage.getItem('tabGreetingLabel') || '🙏 필수 인사말');
   const [tabTravelLabel, setTabTravelLabel] = useState(() => localStorage.getItem('tabTravelLabel') || '✈️ 여행 회화');
   const [tabDailyLabel, setTabDailyLabel] = useState(() => localStorage.getItem('tabDailyLabel') || '🏠 생활 표현');
+  const [tabNewsLabel, setTabNewsLabel] = useState(() => localStorage.getItem('tabNewsLabel') || '📰 일본 소식');
   const [footerText, setFooterText] = useState(() => localStorage.getItem('footerText') || '© 2026 처음 만나는 일본어. 실전 일본어 학습기');
   const [naverMeta, setNaverMeta] = useState(() => localStorage.getItem('naverMeta') || '');
   const [seoData, setSeoData] = useState(() => {
@@ -193,6 +203,7 @@ export default function App() {
         if (data.tabGreetingLabel) setTabGreetingLabel(data.tabGreetingLabel);
         if (data.tabTravelLabel) setTabTravelLabel(data.tabTravelLabel);
         if (data.tabDailyLabel) setTabDailyLabel(data.tabDailyLabel);
+        if (data.tabNewsLabel) setTabNewsLabel(data.tabNewsLabel);
         if (data.footerText) setFooterText(data.footerText);
         if (data.naverMeta) setNaverMeta(data.naverMeta);
         if (data.popupInfo) setPopupInfo(data.popupInfo);
@@ -297,6 +308,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('tabGreetingLabel', tabGreetingLabel); }, [tabGreetingLabel]);
   useEffect(() => { localStorage.setItem('tabTravelLabel', tabTravelLabel); }, [tabTravelLabel]);
   useEffect(() => { localStorage.setItem('tabDailyLabel', tabDailyLabel); }, [tabDailyLabel]);
+  useEffect(() => { localStorage.setItem('tabNewsLabel', tabNewsLabel); }, [tabNewsLabel]);
   useEffect(() => { localStorage.setItem('footerText', footerText); }, [footerText]);
   useEffect(() => { localStorage.setItem('popupInfo', JSON.stringify(popupInfo)); }, [popupInfo]);
 
@@ -518,6 +530,7 @@ export default function App() {
         tabGreetingLabel,
         tabTravelLabel,
         tabDailyLabel,
+        tabNewsLabel,
         footerText,
         naverMeta,
         popupInfo,
@@ -613,6 +626,7 @@ export default function App() {
         <TabButton active={activeTab === 'greetings'} onClick={() => setActiveTab('greetings')} label={tabGreetingLabel} />
         <TabButton active={activeTab === 'travel'} onClick={() => setActiveTab('travel')} label={tabTravelLabel} />
         <TabButton active={activeTab === 'daily'} onClick={() => setActiveTab('daily')} label={tabDailyLabel} />
+        <TabButton active={activeTab === 'news'} onClick={() => setActiveTab('news')} label={tabNewsLabel} />
               </nav>
 
       {/* Main Content */}
@@ -774,6 +788,10 @@ export default function App() {
               </div>
             </motion.section>
           )}
+
+          {activeTab === 'news' && (
+            <NewsSection isAdmin={isAdmin} />
+          )}
           
         </AnimatePresence>
       </main>
@@ -882,6 +900,10 @@ export default function App() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">메뉴 4</label>
                         <input type="text" value={tabDailyLabel} onChange={e=>setTabDailyLabel(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-blue-400 focus:outline-none"/>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">메뉴 5 (소식)</label>
+                        <input type="text" value={tabNewsLabel} onChange={e=>setTabNewsLabel(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-blue-400 focus:outline-none"/>
                       </div>
                       
                     </div>

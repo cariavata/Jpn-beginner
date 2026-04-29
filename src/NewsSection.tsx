@@ -1,0 +1,246 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Edit2, ChevronLeft, Image as ImageIcon } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from './lib/firebase';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { handleFirestoreError, OperationType } from './lib/firebase';
+
+interface NewsPost {
+  id?: string;
+  title: string;
+  content: string;
+  thumbnail?: string;
+  createdAt: number;
+}
+
+export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
+  const [news, setNews] = useState<NewsPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<NewsPost | null>(null);
+  const [editingPost, setEditingPost] = useState<NewsPost | null>(null);
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsPost));
+      setNews(data);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, 'news');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (post: NewsPost) => {
+    try {
+      if (post.id) {
+        await updateDoc(doc(db, 'news', post.id), {
+          title: post.title,
+          content: post.content,
+          thumbnail: post.thumbnail,
+        });
+      } else {
+        await addDoc(collection(db, 'news'), {
+          title: post.title,
+          content: post.content,
+          thumbnail: post.thumbnail,
+          createdAt: Date.now()
+        });
+      }
+      setEditingPost(null);
+      fetchNews();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'news');
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await deleteDoc(doc(db, 'news', id));
+      setSelectedPost(null);
+      fetchNews();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'news');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500 font-bold">로딩 중...</div>;
+  }
+
+  if (editingPost) {
+    return <NewsEditor post={editingPost} onSave={handleSave} onCancel={() => setEditingPost(null)} />;
+  }
+
+  if (selectedPost) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <button onClick={() => setSelectedPost(null)} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 font-bold mb-4">
+          <ChevronLeft size={20} /> 목록으로 돌아가기
+        </button>
+        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+          {isAdmin && (
+            <div className="flex justify-end gap-2 mb-4">
+              <button onClick={() => setEditingPost(selectedPost)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl"><Edit2 size={20}/></button>
+              <button onClick={() => selectedPost.id && handleDelete(selectedPost.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={20}/></button>
+            </div>
+          )}
+          <h1 className="text-2xl md:text-4xl font-black text-gray-800 mb-4">{selectedPost.title}</h1>
+          <p className="text-sm text-gray-400 mb-8">{new Date(selectedPost.createdAt).toLocaleString()}</p>
+          <div className="markdown-body">
+            <Markdown remarkPlugins={[remarkGfm]} urlTransform={(url) => url}>{selectedPost.content}</Markdown>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">📰</span>
+          <h2 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight">일본 소식</h2>
+        </div>
+        {isAdmin && (
+          <button onClick={() => setEditingPost({ title: '', content: '', thumbnail: '', createdAt: 0 })} className="flex items-center gap-1 bg-[#4ECDC4] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl hover:bg-[#45B7AF] transition-all font-bold shadow-md">
+            <Plus size={16} />
+            <span className="text-sm">새 글 쓰기</span>
+          </button>
+        )}
+      </div>
+
+      {news.length === 0 ? (
+        <div className="text-center py-20 text-gray-400 font-medium">등록된 소식이 없습니다.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {news.map(post => (
+            <div key={post.id} onClick={() => setSelectedPost(post)} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden cursor-pointer hover:border-pink-300 hover:shadow-lg transition-all group">
+              {post.thumbnail && (
+                <div className="h-40 overflow-hidden bg-gray-50 flex items-center justify-center">
+                  <img src={post.thumbnail} alt="thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+              )}
+              <div className="p-5">
+                <h3 className="text-lg font-bold text-gray-800 mb-2 truncate">{post.title}</h3>
+                <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.section>
+  );
+}
+
+function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: NewsPost) => void, onCancel: () => void }) {
+  const [title, setTitle] = useState(post.title);
+  const [content, setContent] = useState(post.content);
+  const [thumbnail, setThumbnail] = useState(post.thumbnail || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentFileInputRef = useRef<HTMLInputElement>(null);
+
+  const resizeImage = (file: File, maxWidth: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else {
+            resolve(e.target?.result as string); // fallback
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImage(file, 800);
+      setThumbnail(base64);
+    } catch(err) {
+      alert('이미지 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImage(file, 800);
+      const imageMarkdown = `\n![이미지](${base64})\n`;
+      setContent(prev => prev + imageMarkdown);
+    } catch(err) {
+      alert('이미지 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">{post.id ? '소식 수정' : '새 소식 쓰기'}</h2>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-600 mb-1">제목</label>
+        <input type="text" value={title} onChange={e=>setTitle(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-400 focus:outline-none" placeholder="소식 제목을 입력하세요" />
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-600 mb-1">썸네일 이미지</label>
+        <div className="flex items-center gap-3">
+          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleThumbnailUpload} />
+          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors">
+            <ImageIcon size={18} /> 이미지 선택
+          </button>
+          {thumbnail && <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden"><img src={thumbnail} className="object-cover w-full h-full" alt="thumb"/></div>}
+          {thumbnail && <button onClick={() => setThumbnail('')} className="text-red-500 text-sm hover:underline">제거</button>}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-600 mb-1">본문 (Markdown 지원)</label>
+        <div className="mb-2">
+           <input type="file" accept="image/*" className="hidden" ref={contentFileInputRef} onChange={handleContentImageUpload} />
+           <button onClick={() => contentFileInputRef.current?.click()} className="flex items-center gap-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold transition-colors">
+             <ImageIcon size={16} /> 본문에 이미지 삽입
+           </button>
+        </div>
+        <textarea value={content} onChange={e=>setContent(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-400 focus:outline-none min-h-[300px]" placeholder="Markdown 문법을 사용하여 글을 작성하세요."></textarea>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+        <button onClick={onCancel} className="px-5 py-2.5 rounded-xl text-gray-500 font-bold hover:bg-gray-100 transition-colors">취소</button>
+        <button onClick={() => onSave({ ...post, title, content, thumbnail })} className="px-5 py-2.5 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 shadow-md transition-colors">저장하기</button>
+      </div>
+    </div>
+  );
+}
