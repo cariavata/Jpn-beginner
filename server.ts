@@ -58,20 +58,48 @@ async function startServer() {
   app.get("/sitemap.xml", async (req, res) => {
     const data = await getSeoDataFromFirestore();
     res.type('application/xml');
-    if (data.sitemapXml) {
+    if (data.sitemapXml && data.sitemapXml.trim() !== '') {
        res.send(data.sitemapXml);
     } else {
-       res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</urlset>`);
+       const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+       const host = req.headers['x-forwarded-host'] || req.get('host');
+       const domain = `${protocol}://${host}`;
+       res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${domain}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`);
     }
   });
 
   app.get("/rss.xml", async (req, res) => {
     const data = await getSeoDataFromFirestore();
+    const appData = await getAppDataFromFirestore();
     res.type('application/xml');
-    if (data.rssXml) {
+    if (data.rssXml && data.rssXml.trim() !== '') {
        res.send(data.rssXml);
     } else {
-       res.send(`<?xml version="1.0" encoding="UTF-8" ?>\n<rss version="2.0">\n<channel>\n</channel>\n</rss>`);
+       const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+       const host = req.headers['x-forwarded-host'] || req.get('host');
+       const domain = `${protocol}://${host}`;
+       const title = appData.siteTitle || '처음 만나는 일본어';
+       const description = appData.siteSubtitle || '왕초보를 위한 가장 쉽고 재미있는 일본어 놀이터';
+       res.send(`<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title><![CDATA[${title}]]></title>
+    <link>${domain}/</link>
+    <description><![CDATA[${description}]]></description>
+    <item>
+      <title><![CDATA[${title} - 홈]]></title>
+      <link>${domain}/</link>
+      <description><![CDATA[${description}]]></description>
+    </item>
+  </channel>
+</rss>`);
     }
   });
 
@@ -90,6 +118,15 @@ async function startServer() {
         template = await vite.transformIndexHtml(url, template);
         
         const appData = await getAppDataFromFirestore();
+        let ogTags = '';
+        if (appData.siteTitle) {
+            template = template.replace(/<title>(.*?)<\/title>/, `<title>${appData.siteTitle}</title>`);
+            ogTags += `  <meta property="og:title" content="${appData.siteTitle}" />\n`;
+        }
+        if (appData.siteSubtitle) {
+            ogTags += `  <meta name="description" content="${appData.siteSubtitle}" />\n`;
+            ogTags += `  <meta property="og:description" content="${appData.siteSubtitle}" />\n`;
+        }
         if (appData.naverMeta) {
             let metaTag = '';
             if (appData.naverMeta.trim().startsWith('<meta')) {
@@ -97,7 +134,10 @@ async function startServer() {
             } else {
                metaTag = `<meta name="naver-site-verification" content="${appData.naverMeta}" />`;
             }
-            template = template.replace('</head>', `  ${metaTag}\n</head>`);
+            ogTags += `  ${metaTag}\n`;
+        }
+        if (ogTags) {
+            template = template.replace('</head>', `${ogTags}</head>`);
         }
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch(e) {
@@ -113,6 +153,15 @@ async function startServer() {
       try {
         let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const appData = await getAppDataFromFirestore();
+        let ogTags = '';
+        if (appData.siteTitle) {
+            html = html.replace(/<title>(.*?)<\/title>/, `<title>${appData.siteTitle}</title>`);
+            ogTags += `  <meta property="og:title" content="${appData.siteTitle}" />\n`;
+        }
+        if (appData.siteSubtitle) {
+            ogTags += `  <meta name="description" content="${appData.siteSubtitle}" />\n`;
+            ogTags += `  <meta property="og:description" content="${appData.siteSubtitle}" />\n`;
+        }
         if (appData.naverMeta) {
             let metaTag = '';
             if (appData.naverMeta.trim().startsWith('<meta')) {
@@ -120,7 +169,10 @@ async function startServer() {
             } else {
                metaTag = `<meta name="naver-site-verification" content="${appData.naverMeta}" />`;
             }
-            html = html.replace('</head>', `  ${metaTag}\n</head>`);
+            ogTags += `  ${metaTag}\n`;
+        }
+        if (ogTags) {
+            html = html.replace('</head>', `${ogTags}</head>`);
         }
         res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
       } catch(e) {
