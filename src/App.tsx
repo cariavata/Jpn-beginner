@@ -8,7 +8,7 @@ import { INITIAL_GREETINGS_DATA, INITIAL_TRAVEL_DATA, INITIAL_DAILY_DATA } from 
 import { Volume2, Plane, Home, MessageSquare, Info, Music, Music2, Pencil, Trash2, Plus, X, Lock, Settings, BarChart2, Monitor, Smartphone, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { NewsSection } from './NewsSection';
 
@@ -186,33 +186,33 @@ export default function App() {
   // Fetch / Init Data and Stats
   useEffect(() => {
     // 1. Fetch App Data
-    getDoc(doc(db, 'settings', 'app')).then(docSnap => {
+    const unsubApp = onSnapshot(doc(db, 'settings', 'app'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.greetingsData) setGreetingsData(data.greetingsData);
-        if (data.travelData) setTravelData(data.travelData);
-        if (data.dailyData) setDailyData(data.dailyData);
-        if (data.hiraganaData) setHiraganaData(data.hiraganaData);
-        if (data.katakanaData) setKatakanaData(data.katakanaData);
-        if (data.siteTitle) setSiteTitle(data.siteTitle);
-        if (data.siteSubtitle) setSiteSubtitle(data.siteSubtitle);
-        if (data.tabLetterLabel) setTabLetterLabel(data.tabLetterLabel);
-        if (data.tabGreetingLabel) setTabGreetingLabel(data.tabGreetingLabel);
-        if (data.tabTravelLabel) setTabTravelLabel(data.tabTravelLabel);
-        if (data.tabDailyLabel) setTabDailyLabel(data.tabDailyLabel);
-        if (data.tabNewsLabel) setTabNewsLabel(data.tabNewsLabel);
-        if (data.footerText) setFooterText(data.footerText);
-        if (data.naverMeta) setNaverMeta(data.naverMeta);
-        if (data.popupInfo) setPopupInfo(data.popupInfo);
+        if (data.greetingsData !== undefined) setGreetingsData(data.greetingsData);
+        if (data.travelData !== undefined) setTravelData(data.travelData);
+        if (data.dailyData !== undefined) setDailyData(data.dailyData);
+        if (data.hiraganaData !== undefined) setHiraganaData(data.hiraganaData);
+        if (data.katakanaData !== undefined) setKatakanaData(data.katakanaData);
+        if (data.siteTitle !== undefined) setSiteTitle(data.siteTitle);
+        if (data.siteSubtitle !== undefined) setSiteSubtitle(data.siteSubtitle);
+        if (data.tabLetterLabel !== undefined) setTabLetterLabel(data.tabLetterLabel);
+        if (data.tabGreetingLabel !== undefined) setTabGreetingLabel(data.tabGreetingLabel);
+        if (data.tabTravelLabel !== undefined) setTabTravelLabel(data.tabTravelLabel);
+        if (data.tabDailyLabel !== undefined) setTabDailyLabel(data.tabDailyLabel);
+        if (data.tabNewsLabel !== undefined) setTabNewsLabel(data.tabNewsLabel);
+        if (data.footerText !== undefined) setFooterText(data.footerText);
+        if (data.naverMeta !== undefined) setNaverMeta(data.naverMeta);
+        if (data.popupInfo !== undefined) setPopupInfo(data.popupInfo);
       }
-    }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
     // 2. Fetch SEO Data
-    getDoc(doc(db, 'settings', 'seo')).then(docSnap => {
+    const unsubSeo = onSnapshot(doc(db, 'settings', 'seo'), (docSnap) => {
       if (docSnap.exists()) {
         setSeoData(docSnap.data() as any);
       }
-    }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/seo'));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/seo'));
 
     // 3. Stats Tracking
     const today = new Date().toISOString().split('T')[0];
@@ -263,6 +263,11 @@ export default function App() {
       Firestore loading multiple stats docs can be done via fetching collection('stats') later,
       but for now we'll do it if admin login happens or just do it here. 
     */
+
+    return () => {
+      unsubApp();
+      unsubSeo();
+    };
   }, []);
 
   // Naver Meta Hook
