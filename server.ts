@@ -2,6 +2,13 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import path from "path";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+
+// Read Firebase Config
+const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf8'));
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 
 async function startServer() {
   const app = express();
@@ -10,15 +17,13 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-  const seoDataPath = path.join(process.cwd(), 'seo-data.json');
-
-  // Read / Initialize SEO data
-  function getSeoData() {
-    if (fs.existsSync(seoDataPath)) {
-      try {
-        return JSON.parse(fs.readFileSync(seoDataPath, 'utf8'));
-      } catch(e) { return {}; }
-    }
+  async function getSeoDataFromFirestore() {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'seo'));
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+    } catch(e) { console.error(e); }
     return {
       domain: '',
       robotsTxt: 'User-agent: *\nAllow: /',
@@ -27,104 +32,21 @@ async function startServer() {
     };
   }
 
-  function setSeoData(data: any) {
-    fs.writeFileSync(seoDataPath, JSON.stringify(data, null, 2));
-  }
-
-  const appDataPath = path.join(process.cwd(), 'app-data.json');
-
-  function getAppData() {
-    if (fs.existsSync(appDataPath)) {
-      try { return JSON.parse(fs.readFileSync(appDataPath, 'utf8')); } catch(e) {}
-    }
-    return {};
-  }
-
-  function setAppData(data: any) {
-    fs.writeFileSync(appDataPath, JSON.stringify(data, null, 2));
-  }
-
-  const statsPath = path.join(process.cwd(), 'stats-data.json');
-
-  function getStatsData() {
-    if (fs.existsSync(statsPath)) {
-      try { return JSON.parse(fs.readFileSync(statsPath, 'utf8')); } catch(e) {}
-    }
-    return {};
-  }
-
-  function setStatsData(data: any) {
-    fs.writeFileSync(statsPath, JSON.stringify(data, null, 2));
-  }
-
-  app.get("/api/data", (req, res) => {
-    res.json(getAppData());
-  });
-
-  app.post("/api/data", (req, res) => {
-    setAppData(req.body);
-    res.json({ success: true });
-  });
-
-  app.get("/api/stats", (req, res) => {
-    res.json(getStatsData());
-  });
-
-  app.post("/api/stats", (req, res) => {
-    // Only accept tracking events from users
-    const currentStats = getStatsData();
-    const event = req.body;
-    
-    const today = new Date().toISOString().split('T')[0];
-    const todayStat = currentStats[today] || { visitors: 0, referrers: {}, keywords: {}, devices: {}, browsers: {} };
-    
-    // Depending on what we send in the body
-    if (event.type === 'visit') {
-       todayStat.visitors += 1;
-       if (event.referrer) {
-           todayStat.referrers[event.referrer] = (todayStat.referrers[event.referrer] || 0) + 1;
-       }
-       if (event.keyword) {
-           todayStat.keywords[event.keyword] = (todayStat.keywords[event.keyword] || 0) + 1;
-       }
-       if (event.device) {
-           todayStat.devices[event.device] = (todayStat.devices[event.device] || 0) + 1;
-       }
-       if (event.browser) {
-           todayStat.browsers[event.browser] = (todayStat.browsers[event.browser] || 0) + 1;
-       }
-    }
-    currentStats[today] = todayStat;
-    setStatsData(currentStats);
-
-    res.json({ success: true, stats: currentStats });
-  });
-
-  // API endpoints
-  app.get("/api/seo", (req, res) => {
-    res.json(getSeoData());
-  });
-
-  app.post("/api/seo", (req, res) => {
-    setSeoData(req.body);
-    res.json({ success: true });
-  });
-
   // Serve the actual files
-  app.get("/robots.txt", (req, res) => {
-    const data = getSeoData();
+  app.get("/robots.txt", async (req, res) => {
+    const data = await getSeoDataFromFirestore();
     res.type('text/plain');
     res.send(data.robotsTxt || 'User-agent: *\nAllow: /');
   });
 
-  app.get("/ads.txt", (req, res) => {
-    const data = getSeoData();
+  app.get("/ads.txt", async (req, res) => {
+    const data = await getSeoDataFromFirestore();
     res.type('text/plain');
     res.send(data.adsTxt || '');
   });
 
-  app.get("/sitemap.xml", (req, res) => {
-    const data = getSeoData();
+  app.get("/sitemap.xml", async (req, res) => {
+    const data = await getSeoDataFromFirestore();
     res.type('application/xml');
     if (data.sitemapXml) {
        res.send(data.sitemapXml);
@@ -133,8 +55,8 @@ async function startServer() {
     }
   });
 
-  app.get("/rss.xml", (req, res) => {
-    const data = getSeoData();
+  app.get("/rss.xml", async (req, res) => {
+    const data = await getSeoDataFromFirestore();
     res.type('application/xml');
     if (data.rssXml) {
        res.send(data.rssXml);

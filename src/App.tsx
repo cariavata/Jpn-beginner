@@ -7,7 +7,8 @@ import { useState, useEffect, useCallback, useRef, FC } from 'react';
 import { INITIAL_GREETINGS_DATA, INITIAL_TRAVEL_DATA, INITIAL_DAILY_DATA } from './initialData';
 import { Volume2, Plane, Home, MessageSquare, Info, Music, Music2, Pencil, Trash2, Plus, X, Lock, Settings, BarChart2, Monitor, Smartphone, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { saveAsset, getAsset, deleteAsset } from './lib/db';
+import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 
 // --- Data Section ---
@@ -130,18 +131,22 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('seoData', JSON.stringify(seoData));
-    fetch('/api/seo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(seoData) }).catch(console.error);
+    const saveSeoToFirebase = async () => {
+      try {
+        await setDoc(doc(db, 'settings', 'seo'), seoData);
+      } catch (error) {
+        // silently fail for non admins if they trigger it
+      }
+    };
+    saveSeoToFirebase();
   }, [seoData]);
 
   const handleSeoSave = async () => {
     try {
-      await fetch('/api/seo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seoData)
-      });
+      await setDoc(doc(db, 'settings', 'seo'), seoData);
       alert('SEO 설정이 반영되었습니다.');
     } catch(err) {
+      handleFirestoreError(err, OperationType.WRITE, 'settings/seo');
       alert('저장에 실패했습니다.');
     }
   };
@@ -174,8 +179,9 @@ export default function App() {
   // Fetch / Init Data and Stats
   useEffect(() => {
     // 1. Fetch App Data
-    fetch('/api/data').then(res => res.json()).then(data => {
-      if (data && Object.keys(data).length > 0) {
+    getDoc(doc(db, 'settings', 'app')).then(docSnap => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
         if (data.greetingsData) setGreetingsData(data.greetingsData);
         if (data.travelData) setTravelData(data.travelData);
         if (data.dailyData) setDailyData(data.dailyData);
@@ -192,16 +198,18 @@ export default function App() {
         if (data.popupInfo) setPopupInfo(data.popupInfo);
         if (data.bgmUrl) setBgmUrl(data.bgmUrl);
       }
-    }).catch(console.error);
+    }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
     // 2. Fetch SEO Data
-    fetch('/api/seo').then(res => res.json()).then(data => {
-      if (data && data.robotsTxt) {
-        setSeoData(data);
+    getDoc(doc(db, 'settings', 'seo')).then(docSnap => {
+      if (docSnap.exists()) {
+        setSeoData(docSnap.data() as any);
       }
-    }).catch(console.error);
+    }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/seo'));
 
     // 3. Stats Tracking
+    const today = new Date().toISOString().split('T')[0];
+    
     if (!sessionStorage.getItem('visited_today')) {
       sessionStorage.setItem('visited_today', 'true');
       
@@ -225,22 +233,38 @@ export default function App() {
       else if (ua.includes('Edg')) browser = 'Edge';
       else if (ua.includes('Firefox')) browser = 'Firefox';
       
-      fetch('/api/stats', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          type: 'visit',
-          referrer: refKey,
-          keyword: query,
-          device,
-          browser
-        })
-      }).then(res => res.json()).then(resData => {
-         if (resData.stats) setSiteStats(resData.stats);
+      const statDocRef = doc(db, 'stats', today);
+      getDoc(statDocRef).then(docSnap => {
+        let stats = docSnap.exists() ? docSnap.data() : { visitors: 0, referrers: {}, keywords: {}, devices: {}, browsers: {} };
+        stats.visitors = (stats.visitors || 0) + 1;
+        stats.referrers = stats.referrers || {};
+        stats.referrers[refKey] = (stats.referrers[refKey] || 0) + 1;
+        
+        if (query) {
+           stats.keywords = stats.keywords || {};
+           stats.keywords[query] = (stats.keywords[query] || 0) + 1;
+        }
+
+        stats.devices = stats.devices || {};
+        stats.devices[device] = (stats.devices[device] || 0) + 1;
+
+        stats.browsers = stats.browsers || {};
+        stats.browsers[browser] = (stats.browsers[browser] || 0) + 1;
+
+        setDoc(statDocRef, stats).then(() => {
+          setSiteStats(prev => ({...prev, [today]: stats}));
+        }).catch(err => {
+           // Allow fail if not admin
+        });
       });
-    } else {
-      fetch('/api/stats').then(res => res.json()).then(stats => setSiteStats(stats));
     }
+
+    // load all stats
+    // We only load stats if the user wants them, but since we update state, I'll load them all for display
+    /*
+      Firestore loading multiple stats docs can be done via fetching collection('stats') later,
+      but for now we'll do it if admin login happens or just do it here. 
+    */
   }, []);
 
   // Naver Meta Hook
@@ -457,12 +481,20 @@ export default function App() {
     }
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     if (adminId === 'cariavata' && adminPwd === 'dudwls3098!!') {
       setIsAdmin(true);
       setShowAdminLogin(false);
       setAdminId('');
       setAdminPwd('');
+      // Load all stats when admin logs in
+      import('firebase/firestore').then(({ collection, getDocs }) => {
+        getDocs(collection(db, 'stats')).then(snapshot => {
+           let allStats: any = {};
+           snapshot.forEach(doc => { allStats[doc.id] = doc.data(); });
+           setSiteStats(allStats);
+        }).catch(err => handleFirestoreError(err, OperationType.LIST, 'stats'));
+      });
     } else {
       alert('아이디 또는 비밀번호가 틀렸습니다.');
     }
@@ -470,7 +502,7 @@ export default function App() {
 
   const handleSaveAll = async () => {
     try {
-      const data = {
+      const appData = {
         greetingsData,
         travelData,
         dailyData,
@@ -487,19 +519,11 @@ export default function App() {
         popupInfo,
         bgmUrl
       };
-      await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      await fetch('/api/seo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seoData)
-      });
+      await setDoc(doc(db, 'settings', 'app'), appData);
+      await setDoc(doc(db, 'settings', 'seo'), seoData);
       alert('모든 설정이 서버에 성공적으로 저장되었습니다!\n(다른 브라우저에서도 유지됩니다.)');
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.WRITE, 'settings/app');
       alert('저장 중 오류가 발생했습니다.');
     }
   };

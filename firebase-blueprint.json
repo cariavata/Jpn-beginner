@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "AppData": {
+      "title": "AppData",
+      "description": "Global application configuration data",
+      "type": "object",
+      "properties": {
+        "greetingsData": { "type": "array" },
+        "travelData": { "type": "array" },
+        "dailyData": { "type": "array" },
+        "hiraganaData": { "type": "array" },
+        "katakanaData": { "type": "array" },
+        "siteTitle": { "type": "string" },
+        "siteSubtitle": { "type": "string" },
+        "tabLetterLabel": { "type": "string" },
+        "tabGreetingLabel": { "type": "string" },
+        "tabTravelLabel": { "type": "string" },
+        "tabDailyLabel": { "type": "string" },
+        "footerText": { "type": "string" },
+        "naverMeta": { "type": "string" },
+        "popupInfo": { "type": "object" },
+        "bgmUrl": { "type": "string" },
+        "seoData": { "type": "object" }
+      }
+    },
+    "AppStats": {
+      "title": "AppStats",
+      "description": "Daily visit stats",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "visitors": { "type": "number" },
+        "referrers": { "type": "object" },
+        "keywords": { "type": "object" },
+        "devices": { "type": "object" },
+        "browsers": { "type": "object" }
+      }
+    }
+  },
+  "firestore": {
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/AppData" },
+      "description": "Stores the global settings."
+    },
+    "/stats/{dateId}": {
+      "schema": { "$ref": "#/entities/AppStats" },
+      "description": "Stores daily stats."
+    }
+  }
+}
