@@ -167,8 +167,13 @@ export default function App() {
 
   const [bgmUrl, setBgmUrl] = useState(() => {
     const saved = localStorage.getItem('bgmUrl');
-    if (!saved || saved.includes('beautiful-japanese-music') || saved.includes('Sakura.mp3') || saved.includes('Calm%20Japanese')) {
-      return 'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg';
+    const badUrls = [
+      'https://archive.org/download/beautiful-japanese-music-koto-music-shakuhachi-music/beautiful-japanese-music-koto-music-shakuhachi-music.mp3',
+      'https://archive.org/download/Sakura/Sakura.mp3',
+      'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg'
+    ];
+    if (!saved || badUrls.includes(saved)) {
+      return 'https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3';
     }
     return saved;
   });
@@ -214,8 +219,13 @@ export default function App() {
         if (data.naverMeta) setNaverMeta(data.naverMeta);
         if (data.popupInfo) setPopupInfo(data.popupInfo);
         if (data.bgmUrl) {
-          if (data.bgmUrl.includes('beautiful-japanese-music') || data.bgmUrl.includes('Sakura.mp3') || data.bgmUrl.includes('Calm%20Japanese')) {
-            setBgmUrl('https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg');
+          const badUrls = [
+            'https://archive.org/download/beautiful-japanese-music-koto-music-shakuhachi-music/beautiful-japanese-music-koto-music-shakuhachi-music.mp3',
+            'https://archive.org/download/Sakura/Sakura.mp3',
+            'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg'
+          ];
+          if (badUrls.includes(data.bgmUrl)) {
+            setBgmUrl('https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3');
           } else {
             setBgmUrl(data.bgmUrl);
           }
@@ -494,10 +504,6 @@ export default function App() {
       userManuallyPaused.current = true;
       setIsBgmPlaying(false);
     } else {
-      // Ensure source is loaded
-      if (audioRef.current.src !== bgmUrl && bgmUrl) {
-         audioRef.current.src = bgmUrl;
-      }
       audioRef.current.play().then(() => {
         if (audioRef.current) audioRef.current.volume = 0.05;
         userManuallyPaused.current = false;
@@ -563,7 +569,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FFF5F7] text-[#333] font-sans selection:bg-rose-200">
       {/* Background Music Element */}
-      <audio ref={audioRef} src={bgmUrl} loop preload="auto" />
+      <audio ref={audioRef} src={bgmUrl} loop preload="auto" onPlay={() => setIsBgmPlaying(true)} onPause={() => setIsBgmPlaying(false)} />
       {/* TTS Audio Fallback */}
       <audio ref={ttsAudioRef} className="hidden" preload="none" />
 
