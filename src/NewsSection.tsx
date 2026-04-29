@@ -105,6 +105,13 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           )}
           <h1 className="text-2xl md:text-4xl font-black text-gray-800 mb-4">{selectedPost.title}</h1>
           <p className="text-sm text-gray-400 mb-8">{new Date(selectedPost.createdAt).toLocaleString()}</p>
+          
+          {selectedPost.thumbnail && (
+            <div className="mb-8 flex justify-center">
+              <img src={selectedPost.thumbnail} alt="thumbnail" className="w-[500px] h-[500px] object-cover rounded-2xl shadow-sm" />
+            </div>
+          )}
+
           <div className="markdown-body">
             <Markdown 
               remarkPlugins={[remarkGfm]} 
