@@ -165,7 +165,13 @@ export default function App() {
     return saved ? JSON.parse(saved) : { active: false, content: '새로운 공지사항입니다.', image: '' };
   });
 
-  const [bgmUrl, setBgmUrl] = useState(() => localStorage.getItem('bgmUrl') || 'https://archive.org/download/beautiful-japanese-music-koto-music-shakuhachi-music/beautiful-japanese-music-koto-music-shakuhachi-music.mp3');
+  const [bgmUrl, setBgmUrl] = useState(() => {
+    const saved = localStorage.getItem('bgmUrl');
+    if (!saved || saved.includes('beautiful-japanese-music-koto-music-shakuhachi-music.mp3') || saved.includes('Sakura.mp3')) {
+      return 'https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3';
+    }
+    return saved;
+  });
   useEffect(() => { localStorage.setItem('bgmUrl', bgmUrl); }, [bgmUrl]);
 
     
@@ -207,7 +213,13 @@ export default function App() {
         if (data.footerText) setFooterText(data.footerText);
         if (data.naverMeta) setNaverMeta(data.naverMeta);
         if (data.popupInfo) setPopupInfo(data.popupInfo);
-        if (data.bgmUrl) setBgmUrl(data.bgmUrl);
+        if (data.bgmUrl) {
+          if (data.bgmUrl.includes('beautiful-japanese-music-koto-music-shakuhachi-music.mp3') || data.bgmUrl.includes('Sakura.mp3')) {
+            setBgmUrl('https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3');
+          } else {
+            setBgmUrl(data.bgmUrl);
+          }
+        }
       }
     }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
