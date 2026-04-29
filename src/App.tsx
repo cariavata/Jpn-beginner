@@ -496,14 +496,13 @@ export default function App() {
 
       {/* Header */}
       <header className="bg-[#FF9B9B] text-white p-6 shadow-md border-b-4 border-[#FF6B6B]/10 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
-          <div>
+        <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[5rem] gap-4 relative z-10">
+          <div className="text-center md:absolute md:left-1/2 md:-translate-x-1/2">
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight m-0">{siteTitle}</h1>
             <p className="text-pink-100 mt-2 text-base md:text-lg">{siteSubtitle}</p>
           </div>
           
-          
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full justify-center md:w-auto md:justify-end md:ml-auto">
               {isAdmin ? (
                  <div className="flex items-center gap-2">
                    <button 
