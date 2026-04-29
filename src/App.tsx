@@ -492,7 +492,6 @@ export default function App() {
         setIsBgmPlaying(true);
       }).catch(err => {
         console.error("BGM Autoplay blocked:", err);
-        alert("브라우저 설정에 의해 음악 재생이 막혔습니다. 화면을 클릭한 후 다시 버튼을 눌러주세요.");
       });
     }
   };
