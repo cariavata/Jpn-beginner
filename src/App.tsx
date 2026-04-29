@@ -165,21 +165,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : { active: false, content: '새로운 공지사항입니다.', image: '' };
   });
 
-  const [bgmUrl, setBgmUrl] = useState(() => {
-    const saved = localStorage.getItem('bgmUrl');
-    const badUrls = [
-      'https://archive.org/download/beautiful-japanese-music-koto-music-shakuhachi-music/beautiful-japanese-music-koto-music-shakuhachi-music.mp3',
-      'https://archive.org/download/Sakura/Sakura.mp3',
-      'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg'
-    ];
-    if (!saved || badUrls.includes(saved)) {
-      return 'https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3';
-    }
-    return saved;
-  });
-  useEffect(() => { localStorage.setItem('bgmUrl', bgmUrl); }, [bgmUrl]);
 
-    
   const [dataLoaded, setDataLoaded] = useState(true);
 
   
@@ -218,18 +204,6 @@ export default function App() {
         if (data.footerText) setFooterText(data.footerText);
         if (data.naverMeta) setNaverMeta(data.naverMeta);
         if (data.popupInfo) setPopupInfo(data.popupInfo);
-        if (data.bgmUrl) {
-          const badUrls = [
-            'https://archive.org/download/beautiful-japanese-music-koto-music-shakuhachi-music/beautiful-japanese-music-koto-music-shakuhachi-music.mp3',
-            'https://archive.org/download/Sakura/Sakura.mp3',
-            'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg'
-          ];
-          if (badUrls.includes(data.bgmUrl)) {
-            setBgmUrl('https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3');
-          } else {
-            setBgmUrl(data.bgmUrl);
-          }
-        }
       }
     }).catch(error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
@@ -343,39 +317,11 @@ export default function App() {
 
   const [letterType, setLetterType] = useState<'hiragana' | 'katakana'>('hiragana');
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
-  const userManuallyPaused = useRef(false);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = 0.05;
-      
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          setIsBgmPlaying(true);
-        }).catch(() => {
-          // Autoplay was prevented. Wait for user interaction
-          const startAudioOnInteraction = () => {
-            if (audioRef.current && !userManuallyPaused.current) {
-               audioRef.current.play().then(() => {
-                 setIsBgmPlaying(true);
-               }).catch(console.error);
-            }
-            document.removeEventListener('click', startAudioOnInteraction);
-            document.removeEventListener('keydown', startAudioOnInteraction);
-            document.removeEventListener('touchstart', startAudioOnInteraction);
-          };
-          document.addEventListener('click', startAudioOnInteraction);
-          document.addEventListener('keydown', startAudioOnInteraction);
-          document.addEventListener('touchstart', startAudioOnInteraction);
-        });
-      }
-    }
     setIsReady(true);
     
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -465,17 +411,7 @@ export default function App() {
       utterance.rate = 0.85;
       utterance.pitch = 1.0;
       
-      utterance.onstart = () => {
-        if (audioRef.current) {
-          fadeAudio(audioRef.current, 0.02, 400);
-        }
-      };
-
-      const restoreVolume = () => {
-        if (audioRef.current) {
-          fadeAudio(audioRef.current, 0.05, 600);
-        }
-      };
+      const restoreVolume = () => {};
       
       utterance.onend = restoreVolume;
       utterance.onerror = (e) => {
@@ -486,33 +422,8 @@ export default function App() {
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.error("TTS Error:", err);
-      if (audioRef.current) {
-        fadeAudio(audioRef.current, 0.05, 600);
-      }
     }
   }, []);
-
-  
-
-  
-
-  const toggleBgm = () => {
-    if (!audioRef.current) return;
-    
-    if (isBgmPlaying) {
-      audioRef.current.pause();
-      userManuallyPaused.current = true;
-      setIsBgmPlaying(false);
-    } else {
-      audioRef.current.play().then(() => {
-        if (audioRef.current) audioRef.current.volume = 0.05;
-        userManuallyPaused.current = false;
-        setIsBgmPlaying(true);
-      }).catch(err => {
-        console.error("BGM Autoplay blocked:", err);
-      });
-    }
-  };
 
   const handleAdminLogin = async () => {
     if (adminId === 'cariavata' && adminPwd === 'dudwls3098!!') {
@@ -550,8 +461,7 @@ export default function App() {
         tabNewsLabel,
         footerText,
         naverMeta,
-        popupInfo,
-        bgmUrl
+        popupInfo
       };
       await setDoc(doc(db, 'settings', 'app'), appData);
       await setDoc(doc(db, 'settings', 'seo'), seoData);
@@ -568,8 +478,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FFF5F7] text-[#333] font-sans selection:bg-rose-200">
-      {/* Background Music Element */}
-      <audio ref={audioRef} src={bgmUrl} loop preload="auto" onPlay={() => setIsBgmPlaying(true)} onPause={() => setIsBgmPlaying(false)} />
       {/* TTS Audio Fallback */}
       <audio ref={ttsAudioRef} className="hidden" preload="none" />
 
@@ -621,16 +529,6 @@ export default function App() {
                    <span className="text-sm font-bold tracking-wider hidden md:inline">관리자</span>
                  </button>
               )}
-
-            {/* BGM Toggle Button */}
-            <button 
-              onClick={toggleBgm}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all border-2 ${isBgmPlaying ? 'bg-white text-rose-400 border-white font-bold' : 'bg-rose-400/30 text-white border-white/30 hover:bg-white/10'}`}
-              title="배경음악 토글"
-            >
-              {isBgmPlaying ? <Music size={18} /> : <Music2 size={18} />}
-              <span className="text-sm font-bold uppercase tracking-wider">{isBgmPlaying ? 'BGM ON' : 'BGM OFF'}</span>
-            </button>
 
             
           </div>
@@ -926,15 +824,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Music size={18} className="text-purple-400"/> 배경음악 (BGM) 설정</h3>
-                    <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1">BGM URL (무료 음악 호스팅 링크)</label>
-                          <input type="text" value={bgmUrl} onChange={e => setBgmUrl(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-purple-400 focus:outline-none" placeholder="https://...mp3"/>
-                        </div>
-                    </div>
-                  </div>
+
 
                 </div>
 
