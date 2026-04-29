@@ -474,13 +474,13 @@ export default function App() {
 
   const handleAdminLogin = async () => {
     try {
-      const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      const result = await signInWithEmailAndPassword(auth, adminId, adminPwd);
       
       if (result.user && result.user.email === 'cariavata1@gmail.com') {
         setIsAdmin(true);
         setShowAdminLogin(false);
+        setAdminPwd('');
         // Load all stats when admin logs in
         import('firebase/firestore').then(({ collection, getDocs }) => {
           getDocs(collection(db, 'stats')).then(snapshot => {
@@ -495,8 +495,10 @@ export default function App() {
       }
     } catch (e: any) {
       console.error(e);
-      if (e.code !== 'auth/popup-closed-by-user') {
-        alert('로그인에 실패했습니다.');
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        alert('이메일 또는 비밀번호가 틀렸습니다.\n(참고: Firebase Console의 Authentication 영역에서 Email/Password 제공자를 사용 설정하고, 관리자 계정을 Add User로 직접 추가해야 합니다.)');
+      } else {
+        alert(`로그인에 실패했습니다.\n오류: ${e.message}`);
       }
     }
   };
@@ -1124,7 +1126,9 @@ export default function App() {
               <h2 className="text-2xl font-black text-gray-800">관리자 접속</h2>
             </div>
             <div className="space-y-4">
-              <button onClick={handleAdminLogin} className="w-full bg-rose-400 text-white font-bold py-3 rounded-xl shadow-md hover:bg-rose-500 transition-colors">구글 계정으로 로그인</button>
+              <input type="text" value={adminId} onChange={e=>setAdminId(e.target.value)} placeholder="관리자 이메일" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-rose-400 focus:outline-none"/>
+              <input type="password" value={adminPwd} onChange={e=>setAdminPwd(e.target.value)} placeholder="비밀번호" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-rose-400 focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}/>
+              <button onClick={handleAdminLogin} className="w-full bg-rose-400 text-white font-bold py-3 rounded-xl shadow-md hover:bg-rose-500 transition-colors">로그인</button>
             </div>
           </motion.div>
         </div>
