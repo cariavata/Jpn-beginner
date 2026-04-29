@@ -171,14 +171,39 @@ export default function App() {
     }
   }, []);
 
-  // Fetch / Init Stats
+  // Fetch / Init Data and Stats
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const stats = JSON.parse(localStorage.getItem('site_stats') || '{}');
+    // 1. Fetch App Data
+    fetch('/api/data').then(res => res.json()).then(data => {
+      if (data && Object.keys(data).length > 0) {
+        if (data.greetingsData) setGreetingsData(data.greetingsData);
+        if (data.travelData) setTravelData(data.travelData);
+        if (data.dailyData) setDailyData(data.dailyData);
+        if (data.hiraganaData) setHiraganaData(data.hiraganaData);
+        if (data.katakanaData) setKatakanaData(data.katakanaData);
+        if (data.siteTitle) setSiteTitle(data.siteTitle);
+        if (data.siteSubtitle) setSiteSubtitle(data.siteSubtitle);
+        if (data.tabLetterLabel) setTabLetterLabel(data.tabLetterLabel);
+        if (data.tabGreetingLabel) setTabGreetingLabel(data.tabGreetingLabel);
+        if (data.tabTravelLabel) setTabTravelLabel(data.tabTravelLabel);
+        if (data.tabDailyLabel) setTabDailyLabel(data.tabDailyLabel);
+        if (data.footerText) setFooterText(data.footerText);
+        if (data.naverMeta) setNaverMeta(data.naverMeta);
+        if (data.popupInfo) setPopupInfo(data.popupInfo);
+        if (data.bgmUrl) setBgmUrl(data.bgmUrl);
+      }
+    }).catch(console.error);
+
+    // 2. Fetch SEO Data
+    fetch('/api/seo').then(res => res.json()).then(data => {
+      if (data && data.robotsTxt) {
+        setSeoData(data);
+      }
+    }).catch(console.error);
+
+    // 3. Stats Tracking
     if (!sessionStorage.getItem('visited_today')) {
       sessionStorage.setItem('visited_today', 'true');
-      const todayStat = stats[today] || { visitors: 0, referrers: {}, keywords: {}, devices: {}, browsers: {} };
-      todayStat.visitors += 1;
       
       const ref = document.referrer;
       let refKey = '기타/직접입력';
@@ -186,19 +211,12 @@ export default function App() {
       else if (ref.includes('google.com') || ref.includes('google.co.kr')) refKey = '구글';
       else if (ref.includes('daum.net') || ref.includes('kakao.com')) refKey = '다음/카카오';
       
-      todayStat.referrers[refKey] = (todayStat.referrers[refKey] || 0) + 1;
-      
       const urlParams = new URLSearchParams(window.location.search);
       const query = urlParams.get('q') || urlParams.get('query') || urlParams.get('keyword');
-      if (query) {
-         todayStat.keywords[query] = (todayStat.keywords[query] || 0) + 1;
-      }
 
       const ua = navigator.userAgent;
       let device = 'PC/Desktop';
       if (/Mobi|Android/i.test(ua)) device = 'Tablet/Mobile';
-      todayStat.devices = todayStat.devices || {};
-      todayStat.devices[device] = (todayStat.devices[device] || 0) + 1;
 
       let browser = '기타';
       if (ua.includes('Chrome') && !ua.includes('Edg') && !ua.includes('Whale')) browser = 'Chrome';
@@ -207,13 +225,22 @@ export default function App() {
       else if (ua.includes('Edg')) browser = 'Edge';
       else if (ua.includes('Firefox')) browser = 'Firefox';
       
-      todayStat.browsers = todayStat.browsers || {};
-      todayStat.browsers[browser] = (todayStat.browsers[browser] || 0) + 1;
-
-      stats[today] = todayStat;
-      localStorage.setItem('site_stats', JSON.stringify(stats));
+      fetch('/api/stats', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          type: 'visit',
+          referrer: refKey,
+          keyword: query,
+          device,
+          browser
+        })
+      }).then(res => res.json()).then(resData => {
+         if (resData.stats) setSiteStats(resData.stats);
+      });
+    } else {
+      fetch('/api/stats').then(res => res.json()).then(stats => setSiteStats(stats));
     }
-    setSiteStats(stats);
   }, []);
 
   // Naver Meta Hook
@@ -438,6 +465,42 @@ export default function App() {
       setAdminPwd('');
     } else {
       alert('아이디 또는 비밀번호가 틀렸습니다.');
+    }
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      const data = {
+        greetingsData,
+        travelData,
+        dailyData,
+        hiraganaData,
+        katakanaData,
+        siteTitle,
+        siteSubtitle,
+        tabLetterLabel,
+        tabGreetingLabel,
+        tabTravelLabel,
+        tabDailyLabel,
+        footerText,
+        naverMeta,
+        popupInfo,
+        bgmUrl
+      };
+      await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      await fetch('/api/seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(seoData)
+      });
+      alert('모든 설정이 서버에 성공적으로 저장되었습니다!\n(다른 브라우저에서도 유지됩니다.)');
+    } catch (e) {
+      console.error(e);
+      alert('저장 중 오류가 발생했습니다.');
     }
   };
 
@@ -707,7 +770,10 @@ export default function App() {
           <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} className="bg-gray-50 rounded-3xl w-full max-w-4xl shadow-2xl relative my-4 flex flex-col max-h-[90vh] md:max-h-[85vh]">
             <div className="p-5 md:p-8 border-b border-gray-200 flex justify-between items-center bg-white rounded-t-3xl shrink-0">
               <h2 className="text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2"><Settings size={24} className="text-[#FF6B6B]"/> 관리자 대시보드</h2>
-              <button onClick={() => setShowAdminDashboard(false)} className="text-gray-400 hover:text-gray-800 transition-colors"><X size={28}/></button>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                 <button onClick={handleSaveAll} className="bg-indigo-600 hover:bg-indigo-700 shadow flex items-center justify-center text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors w-full sm:w-auto">💾 모든 변경사항 반영/저장</button>
+                 <button onClick={() => setShowAdminDashboard(false)} className="text-gray-400 hover:text-gray-800 transition-colors absolute sm:static top-4 right-4 sm:top-auto sm:right-auto"><X size={28}/></button>
+              </div>
             </div>
             
             <div className="p-5 md:p-8 overflow-y-auto">

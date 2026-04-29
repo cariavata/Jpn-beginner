@@ -44,6 +44,19 @@ async function startServer() {
     fs.writeFileSync(appDataPath, JSON.stringify(data, null, 2));
   }
 
+  const statsPath = path.join(process.cwd(), 'stats-data.json');
+
+  function getStatsData() {
+    if (fs.existsSync(statsPath)) {
+      try { return JSON.parse(fs.readFileSync(statsPath, 'utf8')); } catch(e) {}
+    }
+    return {};
+  }
+
+  function setStatsData(data: any) {
+    fs.writeFileSync(statsPath, JSON.stringify(data, null, 2));
+  }
+
   app.get("/api/data", (req, res) => {
     res.json(getAppData());
   });
@@ -51,6 +64,40 @@ async function startServer() {
   app.post("/api/data", (req, res) => {
     setAppData(req.body);
     res.json({ success: true });
+  });
+
+  app.get("/api/stats", (req, res) => {
+    res.json(getStatsData());
+  });
+
+  app.post("/api/stats", (req, res) => {
+    // Only accept tracking events from users
+    const currentStats = getStatsData();
+    const event = req.body;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayStat = currentStats[today] || { visitors: 0, referrers: {}, keywords: {}, devices: {}, browsers: {} };
+    
+    // Depending on what we send in the body
+    if (event.type === 'visit') {
+       todayStat.visitors += 1;
+       if (event.referrer) {
+           todayStat.referrers[event.referrer] = (todayStat.referrers[event.referrer] || 0) + 1;
+       }
+       if (event.keyword) {
+           todayStat.keywords[event.keyword] = (todayStat.keywords[event.keyword] || 0) + 1;
+       }
+       if (event.device) {
+           todayStat.devices[event.device] = (todayStat.devices[event.device] || 0) + 1;
+       }
+       if (event.browser) {
+           todayStat.browsers[event.browser] = (todayStat.browsers[event.browser] || 0) + 1;
+       }
+    }
+    currentStats[today] = todayStat;
+    setStatsData(currentStats);
+
+    res.json({ success: true, stats: currentStats });
   });
 
   // API endpoints
