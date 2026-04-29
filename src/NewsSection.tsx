@@ -5,6 +5,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy 
 import { db } from './lib/firebase';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { handleFirestoreError, OperationType } from './lib/firebase';
 
 interface NewsPost {
@@ -65,11 +66,19 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
   const handleDelete = async (id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     try {
+      console.log('Deleting doc with id:', id);
       await deleteDoc(doc(db, 'news', id));
+      console.log('Delete successful');
       setSelectedPost(null);
       fetchNews();
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, 'news');
+      console.error('Delete error:', err);
+      alert('삭제 중 오류가 발생했습니다. 로그를 확인해주세요.');
+      try {
+          handleFirestoreError(err, OperationType.DELETE, `news/${id}`);
+      } catch (e) {
+          console.error(e);
+      }
     }
   };
 
@@ -97,7 +106,13 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           <h1 className="text-2xl md:text-4xl font-black text-gray-800 mb-4">{selectedPost.title}</h1>
           <p className="text-sm text-gray-400 mb-8">{new Date(selectedPost.createdAt).toLocaleString()}</p>
           <div className="markdown-body">
-            <Markdown remarkPlugins={[remarkGfm]} urlTransform={(url) => url}>{selectedPost.content}</Markdown>
+            <Markdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw]}
+              urlTransform={(url) => url}
+            >
+              {selectedPost.content}
+            </Markdown>
           </div>
         </div>
       </motion.div>
@@ -126,7 +141,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           {news.map(post => (
             <div key={post.id} onClick={() => setSelectedPost(post)} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden cursor-pointer hover:border-pink-300 hover:shadow-lg transition-all group">
               {post.thumbnail && (
-                <div className="h-40 overflow-hidden bg-gray-50 flex items-center justify-center">
+                <div className="aspect-square overflow-hidden bg-gray-50 flex items-center justify-center">
                   <img src={post.thumbnail} alt="thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
               )}
@@ -147,9 +162,8 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
   const [content, setContent] = useState(post.content);
   const [thumbnail, setThumbnail] = useState(post.thumbnail || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const contentFileInputRef = useRef<HTMLInputElement>(null);
 
-  const resizeImage = (file: File, maxWidth: number): Promise<string> => {
+  const resizeImageSquare = (file: File, size: number): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -159,15 +173,15 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
           let width = img.width;
           let height = img.height;
           
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-          canvas.width = width;
-          canvas.height = height;
+          let minSize = Math.min(width, height);
+          let sx = (width - minSize) / 2;
+          let sy = (height - minSize) / 2;
+
+          canvas.width = size;
+          canvas.height = size;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.drawImage(img, sx, sy, minSize, minSize, 0, 0, size, size);
             resolve(canvas.toDataURL('image/jpeg', 0.8));
           } else {
             resolve(e.target?.result as string); // fallback
@@ -184,20 +198,8 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const base64 = await resizeImage(file, 800);
+      const base64 = await resizeImageSquare(file, 500);
       setThumbnail(base64);
-    } catch(err) {
-      alert('이미지 처리 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const base64 = await resizeImage(file, 800);
-      const imageMarkdown = `\n![이미지](${base64})\n`;
-      setContent(prev => prev + imageMarkdown);
     } catch(err) {
       alert('이미지 처리 중 오류가 발생했습니다.');
     }
@@ -221,19 +223,13 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
           <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors">
             <ImageIcon size={18} /> 이미지 선택
           </button>
-          {thumbnail && <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden"><img src={thumbnail} className="object-cover w-full h-full" alt="thumb"/></div>}
+          {thumbnail && <div className="size-16 bg-gray-200 rounded overflow-hidden flex-shrink-0"><img src={thumbnail} className="object-cover w-full h-full" alt="thumb"/></div>}
           {thumbnail && <button onClick={() => setThumbnail('')} className="text-red-500 text-sm hover:underline">제거</button>}
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-bold text-gray-600 mb-1">본문 (Markdown 지원)</label>
-        <div className="mb-2">
-           <input type="file" accept="image/*" className="hidden" ref={contentFileInputRef} onChange={handleContentImageUpload} />
-           <button onClick={() => contentFileInputRef.current?.click()} className="flex items-center gap-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold transition-colors">
-             <ImageIcon size={16} /> 본문에 이미지 삽입
-           </button>
-        </div>
         <textarea value={content} onChange={e=>setContent(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-400 focus:outline-none min-h-[300px]" placeholder="Markdown 문법을 사용하여 글을 작성하세요."></textarea>
       </div>
 
