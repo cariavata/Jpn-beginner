@@ -32,6 +32,16 @@ async function startServer() {
     };
   }
 
+  async function getAppDataFromFirestore() {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'app'));
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+    } catch(e) { console.error(e); }
+    return {};
+  }
+
   // Serve the actual files
   app.get("/robots.txt", async (req, res) => {
     const data = await getSeoDataFromFirestore();
@@ -69,14 +79,53 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
     app.use(vite.middlewares);
+    
+    app.use('*', async (req, res, next) => {
+      try {
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        
+        const appData = await getAppDataFromFirestore();
+        if (appData.naverMeta) {
+            let metaTag = '';
+            if (appData.naverMeta.trim().startsWith('<meta')) {
+               metaTag = appData.naverMeta;
+            } else {
+               metaTag = `<meta name="naver-site-verification" content="${appData.naverMeta}" />`;
+            }
+            template = template.replace('</head>', `  ${metaTag}\n</head>`);
+        }
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch(e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
+
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.use(express.static(distPath, { index: false }));
+    app.get('*', async (req, res) => {
+      try {
+        let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+        const appData = await getAppDataFromFirestore();
+        if (appData.naverMeta) {
+            let metaTag = '';
+            if (appData.naverMeta.trim().startsWith('<meta')) {
+               metaTag = appData.naverMeta;
+            } else {
+               metaTag = `<meta name="naver-site-verification" content="${appData.naverMeta}" />`;
+            }
+            html = html.replace('</head>', `  ${metaTag}\n</head>`);
+        }
+        res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+      } catch(e) {
+        res.status(500).end('Error loading index.html');
+      }
     });
   }
 
