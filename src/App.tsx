@@ -261,16 +261,29 @@ export default function App() {
   // Naver Meta Hook
   useEffect(() => {
     localStorage.setItem('naverMeta', naverMeta);
+    
+    // 이전에 추가된 메타 태그가 있다면 제거
     let meta = document.querySelector('meta[name="naver-site-verification"]');
+    if (meta) {
+        meta.remove();
+    }
+    
     if (naverMeta) {
-      if (!meta) {
+      if (naverMeta.trim().startsWith('<meta')) {
+        // 사용자가 메타 태그 전체를 입력한 경우
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = naverMeta;
+        const metaElement = tempDiv.querySelector('meta');
+        if (metaElement) {
+          document.head.appendChild(metaElement);
+        }
+      } else {
+        // 사용자가 content 값만 입력한 경우
         meta = document.createElement('meta');
         meta.setAttribute('name', 'naver-site-verification');
+        meta.setAttribute('content', naverMeta);
         document.head.appendChild(meta);
       }
-      meta.setAttribute('content', naverMeta);
-    } else if (meta) {
-      meta.remove();
     }
   }, [naverMeta]);
 
@@ -812,9 +825,9 @@ export default function App() {
                         <input type="text" value={footerText} onChange={e=>setFooterText(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-indigo-400 focus:outline-none"/>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">네이버 사이트 소유확인 (Meta Tag Content)</label>
-                        <input type="text" value={naverMeta} onChange={e=>setNaverMeta(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-indigo-400 focus:outline-none" placeholder="예: 7a9e...................44"/>
-                        <p className="text-[10px] text-gray-400 mt-1">네이버 웹마스터도구에서 제공하는 content 값을 입력하세요.</p>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">네이버 사이트 소유확인 (Meta Tag)</label>
+                        <input type="text" value={naverMeta} onChange={e=>setNaverMeta(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-indigo-400 focus:outline-none" placeholder='<meta name="naver-site-verification" content="..." />'/>
+                        <p className="text-[10px] text-gray-400 mt-1">네이버 웹마스터도구에서 제공하는 메타태그 전체 또는 content 값을 입력하세요.</p>
                       </div>
                     </div>
                   </div>
