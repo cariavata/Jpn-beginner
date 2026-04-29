@@ -473,33 +473,21 @@ export default function App() {
   };
 
   const handleAdminLogin = async () => {
-    try {
-      const { signInWithEmailAndPassword } = await import('firebase/auth');
-      const result = await signInWithEmailAndPassword(auth, adminId, adminPwd);
-      
-      if (result.user && result.user.email === 'cariavata1@gmail.com') {
-        setIsAdmin(true);
-        setShowAdminLogin(false);
-        setAdminPwd('');
-        // Load all stats when admin logs in
-        import('firebase/firestore').then(({ collection, getDocs }) => {
-          getDocs(collection(db, 'stats')).then(snapshot => {
-             let allStats: any = {};
-             snapshot.forEach(doc => { allStats[doc.id] = doc.data(); });
-             setSiteStats(allStats);
-          }).catch(err => handleFirestoreError(err, OperationType.LIST, 'stats'));
-        });
-      } else {
-        alert('관리자 계정이 아닙니다.');
-        auth.signOut();
-      }
-    } catch (e: any) {
-      console.error(e);
-      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
-        alert('이메일 또는 비밀번호가 틀렸습니다.\n(참고: Firebase Console의 Authentication 영역에서 Email/Password 제공자를 사용 설정하고, 관리자 계정을 Add User로 직접 추가해야 합니다.)');
-      } else {
-        alert(`로그인에 실패했습니다.\n오류: ${e.message}`);
-      }
+    if (adminId === 'cariavata' && adminPwd === 'dudwls3098!!') {
+      setIsAdmin(true);
+      setShowAdminLogin(false);
+      setAdminId('');
+      setAdminPwd('');
+      // Load all stats when admin logs in
+      import('firebase/firestore').then(({ collection, getDocs }) => {
+        getDocs(collection(db, 'stats')).then(snapshot => {
+           let allStats: any = {};
+           snapshot.forEach(doc => { allStats[doc.id] = doc.data(); });
+           setSiteStats(allStats);
+        }).catch(err => handleFirestoreError(err, OperationType.LIST, 'stats'));
+      });
+    } else {
+      alert('아이디 또는 비밀번호가 틀렸습니다.');
     }
   };
 
