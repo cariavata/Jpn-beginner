@@ -358,76 +358,31 @@ export default function App() {
   }, []);
 
   const speakText = useCallback((text: string) => {
-    const playAudioFallback = (text: string) => {
-      if (!ttsAudioRef.current) return;
-      
-      const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ja&client=tw-ob`;
-      
-      // Cancel previous playback
-      ttsAudioRef.current.pause();
-      ttsAudioRef.current.currentTime = 0;
-      
-      ttsAudioRef.current.src = url;
-      
-      ttsAudioRef.current.onplay = () => {
-        if (audioRef.current) {
-          fadeAudio(audioRef.current, 0.02, 400);
-        }
-      };
-      
-      const restoreVolume = () => {
-        if (audioRef.current) {
-          fadeAudio(audioRef.current, 0.05, 600);
-        }
-      };
-      
-      ttsAudioRef.current.onended = restoreVolume;
-      ttsAudioRef.current.onerror = (e) => {
-        console.error("Fallback TTS Error:", e);
-        restoreVolume();
-      };
-      
-      ttsAudioRef.current.play().catch(err => {
-        console.error("Fallback audio blocked", err);
-        restoreVolume();
-      });
+    if (!ttsAudioRef.current) return;
+    
+    // Always use Google Translate TTS via HTML5 Audio for maximum compatibility (iOS, Kakao, Naver)
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ja&client=tw-ob`;
+    
+    ttsAudioRef.current.pause();
+    ttsAudioRef.current.currentTime = 0;
+    ttsAudioRef.current.src = url;
+    
+    ttsAudioRef.current.onplay = () => {
+      // fade audio is removed since we have removed BGM
     };
-
-    const isMobileInAppOrNoTTS = !('speechSynthesis' in window) || /KAKAOTALK|NAVER|Line|Instagram|FBAN|FBAV/i.test(navigator.userAgent);
-
-    if (isMobileInAppOrNoTTS) {
-      playAudioFallback(text);
-      return;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      
-      const jaVoice = voicesRef.current.find(voice => 
-        voice.lang === 'ja-JP' || voice.lang === 'ja_JP' || voice.lang.includes('ja')
-      );
-      
-      if (jaVoice) {
-        utterance.voice = jaVoice;
-      }
-
-      utterance.rate = 0.85;
-      utterance.pitch = 1.0;
-      
-      const restoreVolume = () => {};
-      
-      utterance.onend = restoreVolume;
-      utterance.onerror = (e) => {
-        console.error("TTS Error:", e);
-        restoreVolume();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error("TTS Error:", err);
-    }
+    
+    const restoreVolume = () => {};
+    
+    ttsAudioRef.current.onended = restoreVolume;
+    ttsAudioRef.current.onerror = (e) => {
+      console.error("TTS Error:", e);
+      restoreVolume();
+    };
+    
+    ttsAudioRef.current.play().catch(err => {
+      console.error("TTS audio blocked by browser:", err);
+      restoreVolume();
+    });
   }, []);
 
   const handleAdminLogin = async () => {
@@ -468,12 +423,17 @@ export default function App() {
         naverMeta,
         popupInfo
       };
-      await setDoc(doc(db, 'settings', 'app'), appData);
+      
+      // Clean undefined values to prevent Firebase setDoc throws
+      const cleanAppData = JSON.parse(JSON.stringify(appData));
+      
+      await setDoc(doc(db, 'settings', 'app'), cleanAppData);
       await setDoc(doc(db, 'settings', 'seo'), seoData);
       alert('모든 설정이 서버에 성공적으로 저장되었습니다!\n(다른 브라우저에서도 유지됩니다.)');
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'settings/app');
-      alert('저장 중 오류가 발생했습니다.');
+      console.error(e);
+      alert('저장 중 오류가 발생했습니다: ' + (e instanceof Error ? e.message : String(e)));
+      try { handleFirestoreError(e, OperationType.WRITE, 'settings/app'); } catch(err) {}
     }
   };
 
