@@ -167,8 +167,8 @@ export default function App() {
 
   const [bgmUrl, setBgmUrl] = useState(() => {
     const saved = localStorage.getItem('bgmUrl');
-    if (!saved || saved.includes('beautiful-japanese-music-koto-music-shakuhachi-music.mp3') || saved.includes('Sakura.mp3')) {
-      return 'https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3';
+    if (!saved || saved.includes('beautiful-japanese-music') || saved.includes('Sakura.mp3') || saved.includes('Calm%20Japanese')) {
+      return 'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg';
     }
     return saved;
   });
@@ -214,8 +214,8 @@ export default function App() {
         if (data.naverMeta) setNaverMeta(data.naverMeta);
         if (data.popupInfo) setPopupInfo(data.popupInfo);
         if (data.bgmUrl) {
-          if (data.bgmUrl.includes('beautiful-japanese-music-koto-music-shakuhachi-music.mp3') || data.bgmUrl.includes('Sakura.mp3')) {
-            setBgmUrl('https://archive.org/download/calmjapanesetraditionalmusic/Calm%20Japanese%20traditional%20music.mp3');
+          if (data.bgmUrl.includes('beautiful-japanese-music') || data.bgmUrl.includes('Sakura.mp3') || data.bgmUrl.includes('Calm%20Japanese')) {
+            setBgmUrl('https://upload.wikimedia.org/wikipedia/commons/e/ed/Sakura_Sakura.song.ogg');
           } else {
             setBgmUrl(data.bgmUrl);
           }
@@ -495,7 +495,7 @@ export default function App() {
       setIsBgmPlaying(false);
     } else {
       // Ensure source is loaded
-      if (!audioRef.current.src && bgmUrl) {
+      if (audioRef.current.src !== bgmUrl && bgmUrl) {
          audioRef.current.src = bgmUrl;
       }
       audioRef.current.play().then(() => {
