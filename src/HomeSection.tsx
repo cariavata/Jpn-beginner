@@ -1,5 +1,17 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, MessageSquare, Plane, Home, Newspaper, Sparkles, Map, Heart, Star } from 'lucide-react';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { db } from './lib/firebase';
+
+interface NewsPost {
+  id?: string;
+  title: string;
+  content: string;
+  thumbnail?: string;
+  createdAt: number;
+  isNotice?: boolean;
+}
 
 interface HomeSectionProps {
   setActiveTab: (tab: string) => void;
@@ -13,12 +25,33 @@ interface HomeSectionProps {
 }
 
 export function HomeSection({ setActiveTab, labels }: HomeSectionProps) {
+  const [topNews, setTopNews] = useState<NewsPost[]>([]);
+
+  useEffect(() => {
+    async function fetchTopNews() {
+      try {
+        const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(5));
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsPost));
+        data.sort((a, b) => {
+          if (a.isNotice && !b.isNotice) return -1;
+          if (!a.isNotice && b.isNotice) return 1;
+          return b.createdAt - a.createdAt;
+        });
+        setTopNews(data.slice(0, 2));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchTopNews();
+  }, []);
+
   const cards = [
     { id: 'letters', label: labels.letters, description: '히라가나와 가타카나를 완벽하게 마스터하세요.', icon: BookOpen, color: 'bg-pink-100', iconColor: 'text-pink-500' },
     { id: 'greetings', label: labels.greetings, description: '일본어의 기본인 필수 인사말을 배워보세요.', icon: MessageSquare, color: 'bg-green-100', iconColor: 'text-green-500' },
     { id: 'travel', label: labels.travel, description: '일본 여행에서 바로 쓸 수 있는 실전 회화!', icon: Plane, color: 'bg-blue-100', iconColor: 'text-blue-500' },
     { id: 'daily', label: labels.daily, description: '일상 생활에서 자주 쓰이는 유용한 표현들.', icon: Home, color: 'bg-purple-100', iconColor: 'text-purple-500' },
-    { id: 'news', label: labels.news, description: '일본의 최신 소식과 트렌드를 일본어로 읽어보세요.', icon: Newspaper, color: 'bg-orange-100', iconColor: 'text-orange-500' },
+    { id: 'news', label: labels.news, description: '일본의 최신 소식과 트렌드를 확인하세요.', icon: Newspaper, color: 'bg-orange-100', iconColor: 'text-orange-500' },
   ];
 
   return (
@@ -89,39 +122,91 @@ export function HomeSection({ setActiveTab, labels }: HomeSectionProps) {
         </div>
       </div>
 
-      {/* Motivational Section / Feature highlights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <div className="md:col-span-1 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-[2rem] p-6 text-center shadow-sm relative overflow-hidden flex flex-col items-center justify-center">
-          <div className="absolute -top-4 -right-4 text-indigo-100 rotate-12">
-            <Map size={80} />
+      {/* Recent News Preview Section */}
+      <div className="space-y-4 pt-6">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            <Newspaper className="text-orange-400" size={24} />
+            <h3 className="text-2xl font-bold text-gray-800">최신 일본 소식</h3>
           </div>
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-indigo-500 mb-4 shadow-sm relative z-10">
-            <Plane size={24} />
-          </div>
-          <h4 className="text-lg font-bold text-gray-800 mb-2 relative z-10">일본 여행 준비 끝!</h4>
-          <p className="text-sm text-gray-600 relative z-10">공항, 호텔, 식당에서 꼭 필요한 핵심 문장만 모았습니다.</p>
         </div>
 
-        <div className="md:col-span-1 bg-gradient-to-br from-rose-50 to-pink-50 rounded-[2rem] p-6 text-center shadow-sm relative overflow-hidden flex flex-col items-center justify-center">
-          <div className="absolute -bottom-4 -left-4 text-pink-100 -rotate-12">
-            <Heart size={80} />
-          </div>
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-pink-500 mb-4 shadow-sm relative z-10">
-            <MessageSquare size={24} />
-          </div>
-          <h4 className="text-lg font-bold text-gray-800 mb-2 relative z-10">네이티브처럼 말하기</h4>
-          <p className="text-sm text-gray-600 relative z-10">일본인 친구를 만났을 때 바로 쓸 수 있는 리얼 일본어.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          {topNews.length > 0 ? topNews.map(news => (
+            <div 
+              key={news.id} 
+              onClick={() => setActiveTab('news')}
+              className="bg-white p-4 rounded-[1.5rem] md:rounded-[2rem] border-2 border-transparent hover:border-orange-100 flex gap-4 items-center group cursor-pointer shadow-sm hover:shadow-md transition-all"
+            >
+              <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 bg-gray-50 rounded-xl md:rounded-2xl overflow-hidden relative border border-gray-100">
+                {news.thumbnail ? (
+                  <img src={news.thumbnail} alt={news.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                    <Newspaper size={32} />
+                  </div>
+                )}
+                {news.isNotice && (
+                  <div className="absolute top-2 left-2 bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm">
+                    공지
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 py-1">
+                <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1 truncate group-hover:text-orange-500 transition-colors">{news.title}</h4>
+                <p className="text-xs md:text-sm text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                  {news.content.replace(/[#*`>]/g, '')}
+                </p>
+                <div className="text-[10px] md:text-xs font-bold text-gray-400">
+                  {new Date(news.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="col-span-full py-10 text-center text-gray-400 font-medium bg-white rounded-[2rem] shadow-sm border border-gray-100">
+              최근 업데이트된 소식이 없습니다.
+            </div>
+          )}
         </div>
 
-        <div className="md:col-span-1 bg-gradient-to-br from-amber-50 to-orange-50 rounded-[2rem] p-6 text-center shadow-sm relative overflow-hidden flex flex-col items-center justify-center">
-          <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-orange-100">
-            <Star size={80} />
-          </div>
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-orange-500 mb-4 shadow-sm relative z-10">
-            <BookOpen size={24} />
-          </div>
-          <h4 className="text-lg font-bold text-gray-800 mb-2 relative z-10">기초부터 탄탄하게</h4>
-          <p className="text-sm text-gray-600 relative z-10">히라가나와 가타카나를 듣고 보며 쉽게 암기해보세요.</p>
+        <div className="flex justify-center mt-6">
+          <button 
+            onClick={() => setActiveTab('news')}
+            className="px-6 py-2.5 rounded-full border border-gray-200 text-gray-600 font-bold text-sm hover:border-gray-800 hover:text-gray-800 transition-colors bg-white shadow-sm hover:shadow-md"
+          >
+            소식 살펴보기 →
+          </button>
+        </div>
+      </div>
+
+      {/* Motivational Section / Feature highlights (Redesigned) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch py-8 border-y border-pink-100/50 gap-8 md:gap-4 mt-8">
+        <div className="flex-1 flex flex-col items-center text-center px-4 group">
+           <div className="w-12 h-12 border-2 border-indigo-100 rounded-full flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 group-hover:bg-indigo-50 transition-all">
+              <Plane size={20} />
+           </div>
+           <h4 className="text-lg font-bold text-gray-800 mb-2">일본 여행 준비 끝!</h4>
+           <p className="text-sm text-gray-500 leading-relaxed font-medium">공항, 호텔, 식당에서<br className="hidden lg:block"/>꼭 필요한 핵심 문장만 모았습니다.</p>
+        </div>
+        
+        <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-pink-100 to-transparent self-stretch my-4"></div>
+        
+        <div className="flex-1 flex flex-col items-center text-center px-4 group">
+           <div className="w-12 h-12 border-2 border-pink-100 rounded-full flex items-center justify-center text-pink-400 mb-4 group-hover:scale-110 group-hover:bg-pink-50 transition-all">
+              <MessageSquare size={20} />
+           </div>
+           <h4 className="text-lg font-bold text-gray-800 mb-2">네이티브처럼 말하기</h4>
+           <p className="text-sm text-gray-500 leading-relaxed font-medium">일본인 친구를 만났을 때<br className="hidden lg:block"/>바로 쓸 수 있는 리얼 일본어.</p>
+        </div>
+        
+        <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-pink-100 to-transparent self-stretch my-4"></div>
+        
+        <div className="flex-1 flex flex-col items-center text-center px-4 group">
+           <div className="w-12 h-12 border-2 border-orange-100 rounded-full flex items-center justify-center text-orange-400 mb-4 group-hover:scale-110 group-hover:bg-orange-50 transition-all">
+              <BookOpen size={20} />
+           </div>
+           <h4 className="text-lg font-bold text-gray-800 mb-2">기초부터 탄탄하게</h4>
+           <p className="text-sm text-gray-500 leading-relaxed font-medium">히라가나와 가타카나를<br className="hidden lg:block"/>듣고 보며 쉽게 암기해보세요.</p>
         </div>
       </div>
 

@@ -35,6 +35,7 @@ interface NewsPost {
   content: string;
   thumbnail?: string;
   createdAt: number;
+  isNotice?: boolean;
 }
 
 export function NewsSection({ isAdmin }: { isAdmin: boolean }) {

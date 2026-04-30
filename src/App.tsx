@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback, useRef, FC } from 'react';
+import React, { useState, useEffect, useCallback, useRef, FC, Fragment } from 'react';
 import { INITIAL_GREETINGS_DATA, INITIAL_TRAVEL_DATA, INITIAL_DAILY_DATA } from './initialData';
 import { Volume2, Plane, Home, MessageSquare, Info, Music, Music2, Pencil, Trash2, Plus, X, Lock, Settings, BarChart2, Monitor, Smartphone, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -847,12 +847,7 @@ export default function App() {
 
     <div className="w-full max-w-4xl mx-auto px-4 flex justify-center">
         {/* Google AdSense */}
-        <ins className="adsbygoogle w-full mt-8 mb-4"
-             style={{ display: 'block' }}
-             data-ad-client="ca-pub-6799823492487492"
-             data-ad-slot=""
-             data-ad-format="auto"
-             data-full-width-responsive="true"></ins>
+        <AdUnit className="w-full mt-8 mb-4" />
       </div>
 
       <footer className="text-center py-8 text-gray-400 text-[10px] md:text-xs font-medium tracking-wider">
@@ -1216,18 +1211,42 @@ export default function App() {
 }
 
 function AdUnit({ className }: { className?: string }) {
+  const adRef = useRef<HTMLModElement>(null);
+
   useEffect(() => {
-    try {
-      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-    } catch (e: any) {
-      if (!e?.message?.includes("already have ads")) {
-        console.error("AdSense error:", e);
+    let pushed = false;
+    
+    // ResizeObserver allows us to detect when the ad container becomes visible
+    // and gets a valid width > 0.
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && !pushed) {
+          pushed = true;
+          try {
+            ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+          } catch (e: any) {
+            if (!e?.message?.includes("already have ads")) {
+              console.error("AdSense error:", e);
+            }
+          }
+          // Once pushed, we don't need to observe anymore
+          observer.disconnect();
+        }
       }
+    });
+
+    if (adRef.current) {
+      observer.observe(adRef.current);
     }
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   return (
-    <ins className={`adsbygoogle ${className || ''}`}
+    <ins ref={adRef}
+         className={`adsbygoogle ${className || ''}`}
          style={{ display: 'block' }}
          data-ad-client="ca-pub-6799823492487492"
          data-ad-slot=""
