@@ -628,7 +628,7 @@ export default function App() {
         </header>
   
         {/* Navigation */}
-        <nav className="bg-[#FFB3B3] p-2 md:p-3 flex justify-center gap-2 md:gap-4 border-b border-[#FF9B9B] overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <nav className="bg-[#FFB3B3] p-2 md:p-3 flex justify-start md:justify-center gap-2 md:gap-4 border-b border-[#FF9B9B] overflow-x-auto whitespace-nowrap scrollbar-hide px-4">
           <TabButton active={activeTab === 'letters'} onClick={() => setActiveTab('letters')} label={tabLetterLabel} />
           <TabButton active={activeTab === 'greetings'} onClick={() => setActiveTab('greetings')} label={tabGreetingLabel} />
           <TabButton active={activeTab === 'travel'} onClick={() => setActiveTab('travel')} label={tabTravelLabel} />
@@ -1178,7 +1178,7 @@ function TabButton({ active, onClick, label }: { active: boolean, onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-bold transition-all text-xs md:text-base ${
+      className={`px-3 py-1.5 md:px-6 md:py-2 rounded-full font-bold transition-all text-xs md:text-base flex-shrink-0 ${
         active 
           ? 'bg-white text-[#FF9B9B] shadow-sm' 
           : 'bg-transparent text-white hover:bg-white/10'
