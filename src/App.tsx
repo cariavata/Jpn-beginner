@@ -663,6 +663,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           {activeTab === 'home' && (
             <HomeSection 
+              key="home"
               setActiveTab={setActiveTab} 
               labels={{
                 letters: tabLetterLabel,
@@ -704,7 +705,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-5 gap-2 md:gap-5">
-                {(letterType === 'hiragana' ? hiraganaData : katakanaData).map((item, idx) => (
+                {((letterType === 'hiragana' ? hiraganaData : katakanaData) || []).map((item, idx) => (
                   item ? (
                     <motion.div
                       key={`char-${letterType}-${idx}`}
@@ -795,7 +796,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(activeTab === 'greetings' ? greetingsData : activeTab === 'travel' ? travelData : dailyData).map((item, i) => (
+                {((activeTab === 'greetings' ? greetingsData : activeTab === 'travel' ? travelData : dailyData) || []).map((item, i) => (
                   <React.Fragment key={`${activeTab}-${i}`}>
                     {i > 0 && i % 5 === 0 && (
                       <div className="block md:hidden col-span-1 border border-gray-100 rounded-xl overflow-hidden shadow-sm flex justify-center items-center py-2 bg-gray-50/30">
@@ -831,7 +832,7 @@ export default function App() {
           )}
 
           {activeTab === 'news' && (
-            <NewsSection isAdmin={isAdmin} />
+            <NewsSection key="news" isAdmin={isAdmin} />
           )}
           
         </AnimatePresence>
