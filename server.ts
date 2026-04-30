@@ -52,7 +52,7 @@ async function startServer() {
   app.get("/ads.txt", async (req, res) => {
     const data = await getSeoDataFromFirestore();
     res.type('text/plain');
-    res.send(data.adsTxt || '');
+    res.send(data.adsTxt || 'google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0');
   });
 
   app.get("/sitemap.xml", async (req, res) => {
