@@ -6,6 +6,10 @@
   --font-rounded: 'M PLUS Rounded 1c', 'Noto Sans KR', sans-serif;
 }
 
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}
+
 body {
   background-color: #FFF5F7;
   color: #333;

@@ -137,8 +137,22 @@ export default function App() {
   };
 
   const handleExitConfirmYes = () => {
-    window.history.go(-2); // Try to go back fully
     setShowExitConfirm(false);
+    
+    // Try multiple ways to exit the app
+    if ((window.navigator as any)?.app?.exitApp) {
+      (window.navigator as any).app.exitApp();
+    } else {
+      window.close();
+      window.history.go(-2); // Try to go back past our replaced root state
+      
+      // Fallback for PWAs and standalone mode where back doesn't work
+      setTimeout(() => {
+        if (!document.hidden) {
+          window.location.replace('about:blank');
+        }
+      }, 300);
+    }
   };
 
   const handleExitConfirmNo = () => {
@@ -187,6 +201,7 @@ export default function App() {
   const [tabNewsLabel, setTabNewsLabel] = useState(() => localStorage.getItem('tabNewsLabel') || '📰 일본 소식');
   const [footerText, setFooterText] = useState(() => localStorage.getItem('footerText') || '© 2026 처음 만나는 일본어. 실전 일본어 학습기');
   const [naverMeta, setNaverMeta] = useState(() => localStorage.getItem('naverMeta') || '');
+  const [metaKeywords, setMetaKeywords] = useState(() => localStorage.getItem('metaKeywords') || '일본어 기초, 일본어 독학, 히라가나 외우기, 가타카나 익히기, 히라가나 표, 가타카나 표, 일본어 문자, 일본어 발음, 일본어 입문, 일본어 첫걸음, 히라가나 쉽게 배우기, 가타카나 쉽게 배우기, 일본어 오십음도, 일본어 자음 모음, 일본어 쓰기, 히라가나 쓰는 법, 가타카나 쓰는 법, 일본어 읽기, 일본어 성조, 일본어 기초 단어, 히라가나 암기법, 가타카나 암기법, 일본어 알파벳, 일본어 기초 문법, 일본어 필수 문자, 일본어 시작하기, 왕초보 일본어, 초급 일본어, 일본어 기초 강의, 히라가나 가타카나 차이, 기초 일어, 일어 배우기, 일어 입문, 일본어 독학하기, 히라가나 연습, 가타카나 연습, 일본어 소리내어 읽기, 일본어 기초 회화, 일본어 무료 학습, 일본어 공부 사이트, 일본 여행 회화, 일본 여행 필수 문장, 일본 여행 단어, 일본 공항 회화, 일본 식당 회화, 일본 호텔 회화, 일본 쇼핑 회화, 일본 길찾기 문장, 일본 편의점 회화, 일본 지하철 이용, 일본 버스 이용, 일본 여행 준비물, 일본어 여행 용어, 일본 여행 꿀팁, 일본 식당 주문하기, 일본 면세점 회화, 일본 긴급 상황 회화, 일본 병원 회화, 일본 약국 회화, 일본 여행 인사, 일본 결제 회화, 일본어 숫자 읽기, 일본 돈 계산하기, 일본 화장실 찾기, 일본 여행 영어 대신 일본어, 일본어 서바이벌 회화, 일본 여행 문장 100개, 일본 여행 실전 회화, 일본 현지인 회화, 일본 여행 필수 앱, 일본어 번역기 없이 여행하기, 일본 여행 인사말, 일본 여행 회화 교재, 여행 일어 독학, 도쿄 여행 일본어, 오사카 여행 일본어, 후쿠오카 여행 일본어, 삿포로 여행 일본어, 일본 여행 한마디, 일본어 인사말, 일본어 아침 인사, 일본어 점심 인사, 일본어 저녁 인사, 일본어 작별 인사, 일본어 감사 표현, 일본어 사과 표현, 일본어 일상 회화, 일본인 친구 사귀기, 일본어 자기소개, 일본어 취미 표현, 일본어 날씨 표현, 일본어 시간 표현, 일본어 감정 표현, 일본어 전화 회화, 일본어 메일 쓰기, 일본어 리액션, 일본어 맞장구, 일본어 유행어, 일본어 신조어, 일본어 반말, 일본어 존댓말, 일본어 경어 기초, 일본어 실생활 단어, 일본어 관용구, 일본어 속담, 일본어 예절, 일본 문화와 언어, 일본어 매일 한 문장, 일본어 습관, 일본어 대화법, 일본어 리스닝, 일본어 쉐도잉, 일본어 대화 연습, 일본어 발음 교정, 일본어 문장 만들기, 실전 일본어, 현지 일본어, 일본어 생활 문장, 일본어 독학 사이트, 일본어 무료 강의, 일본어 공부법, 일본어 인강 추천, 일본어 학습지, 일본어 단어장, 일본어 암기 팁, JLPT 기초, JLPT N5 단어, JLPT N4 단어, EJU 기초, 일본어 시험 준비, 일본어 능력 시험, 일본어 자격증, 비즈니스 일본어 기초, 일본어 한자 읽기, 일본어 한자 기초, 일본어 동사 활용, 일본어 형용사 활용, 일본어 조사 정리, 일본어 문법 정리, 일본어 공부 순서, 일본어 공부 루틴, 일본어 교재 추천, 일본어 앱 추천, 일본어 인강 후기, 일본어 유튜브 학습, 일본어 팟캐스트, 일본어 뉴스 학습, 일본어 애니메이션 회화, 일본어 드라마 회화, 일본어 노래로 배우기, 일본어 자막 없이 보기, 일본어 번역 연습, 일본어 통역 기초, 일본어 작문 연습, 무료 일본어 학습, 일본어 공부 시작, 일본어 쉽게 끝내기, 일본어 마스터, 일본어 단기 완성, 직장인 일본어 독학, 학생 일본어 공부, 일본어 취미, 일본어 자기계발, 일본어 지식인, 일본어 Q&A, 일본어 커뮤니티, 일본어 사전 활용법, 네이버 일본어 사전, 구글 번역기 활용, 일본어 입력기 설정, 일본어 폰트, 일본어 키보드 쓰는 법, 일본어 워드 작성, 일본어 PDF 자료, 일본어 무료 워크시트, 일본어 출력 자료, 일본어 카드 학습, 일본어 퀴즈, 일본어 게임 학습, 일본어 단어 퀴즈, 일본어 실력 테스트, 일본어 레벨 테스트, 일본어 교육, 일어 교육 사이트, 일본어 웹사이트 추천, 일본어 학습 정보, 일본어 트렌드, 일본어 지식 공유, 일본어 전문가 팁, 일본어 공부방, 일본어 온라인 클래스');
   const [seoData, setSeoData] = useState(() => {
     const saved = localStorage.getItem('seoData');
     return saved ? JSON.parse(saved) : { robotsTxt: 'User-agent: *\nAllow: /', sitemapXml: '', rssXml: '', adsTxt: '' };
@@ -256,6 +271,7 @@ export default function App() {
         if (data.tabNewsLabel !== undefined) setTabNewsLabel(data.tabNewsLabel ?? '');
         if (data.footerText !== undefined) setFooterText(data.footerText ?? '');
         if (data.naverMeta !== undefined) setNaverMeta(data.naverMeta ?? '');
+        if (data.metaKeywords !== undefined) setMetaKeywords(data.metaKeywords ?? '');
         if (data.popupInfo !== undefined) setPopupInfo(data.popupInfo ?? {show: false, content: ''});
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/app'));
@@ -351,6 +367,25 @@ export default function App() {
       }
     }
   }, [naverMeta]);
+
+  // SEO Keywords Hook
+  useEffect(() => {
+    localStorage.setItem('metaKeywords', metaKeywords);
+    
+    let meta = document.querySelector('meta[name="keywords"]');
+    if (meta) {
+      if (metaKeywords) {
+        meta.setAttribute('content', metaKeywords);
+      } else {
+        meta.remove();
+      }
+    } else if (metaKeywords) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'keywords');
+      meta.setAttribute('content', metaKeywords);
+      document.head.appendChild(meta);
+    }
+  }, [metaKeywords]);
 
     
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
@@ -495,6 +530,7 @@ export default function App() {
         tabNewsLabel,
         footerText,
         naverMeta,
+        metaKeywords,
         popupInfo
       };
       
@@ -768,9 +804,9 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <div className="w-full max-w-4xl mx-auto mt-8 mb-4 px-4">
+      <div className="w-full max-w-4xl mx-auto px-4 flex justify-center">
         {/* Google AdSense */}
-        <ins className="adsbygoogle"
+        <ins className="adsbygoogle w-full mt-8 mb-4"
              style={{ display: 'block' }}
              data-ad-client="ca-pub-6799823492487492"
              data-ad-slot=""
@@ -822,6 +858,11 @@ export default function App() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">하단 카피라이트 (Footer)</label>
                         <input type="text" value={footerText} onChange={e=>setFooterText(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-indigo-400 focus:outline-none"/>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">검색 포털 메타태그 (Meta Keywords)</label>
+                        <textarea value={metaKeywords} onChange={e=>setMetaKeywords(e.target.value)} className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:border-indigo-400 focus:outline-none h-24" placeholder="키워드를 콤마(,)와 띄어쓰기로 구분하여 입력하세요."/>
+                        <p className="text-[10px] text-gray-400 mt-1">네이버, 구글 등 검색 포털에서 검색이 잘 되게 하는 키워드를 입력합니다.</p>
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">네이버 사이트 소유확인 (Meta Tag)</label>

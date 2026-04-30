@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { handleFirestoreError, OperationType } from './lib/firebase';
 
-function AdUnit() {
+function AdUnit({ className }: { className?: string }) {
   useEffect(() => {
     try {
       ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
@@ -20,7 +20,7 @@ function AdUnit() {
   }, []);
 
   return (
-    <ins className="adsbygoogle w-full"
+    <ins className={`adsbygoogle w-full ${className || ''}`}
          style={{ display: 'block' }}
          data-ad-client="ca-pub-6799823492487492"
          data-ad-slot=""
@@ -143,9 +143,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           </div>
           
           {/* AdSense Placeholder Bottom */}
-          <div className="w-full mt-4 flex justify-center">
-            <AdUnit />
-          </div>
+          <AdUnit className="mt-4" />
         </div>
       </motion.div>
     );
@@ -176,10 +174,6 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
         <div className="text-center py-20 text-gray-400 font-medium">등록된 소식이 없습니다.</div>
       ) : (
         <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-          {/* AdSense Placeholder Top List */}
-          <div className="w-full flex justify-center">
-            <AdUnit />
-          </div>
         
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 hidden md:table-header-group border-b-2 border-gray-100">
@@ -215,9 +209,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           </table>
           
           {/* AdSense Placeholder Bottom List */}
-          <div className="w-full flex justify-center">
-            <AdUnit />
-          </div>
+          <AdUnit />
         </div>
       )}
     </motion.section>
