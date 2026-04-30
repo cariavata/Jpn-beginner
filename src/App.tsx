@@ -90,7 +90,48 @@ const fadeAudio = (audio: HTMLAudioElement, targetVolume: number, duration: numb
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('letters');
+  const [activeTab, setActiveTabState] = useState('letters');
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    // History manipulation for back button
+    window.history.replaceState({ isRoot: true }, '');
+    window.history.pushState({ tab: activeTabRef.current }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.isRoot) {
+        setShowExitConfirm(true);
+        window.history.pushState({ tab: activeTabRef.current }, '');
+      } else if (e.state && e.state.tab) {
+        setActiveTabState(e.state.tab);
+        setShowExitConfirm(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const setActiveTab = (newTab: string) => {
+    if (newTab !== activeTab) {
+      window.history.pushState({ tab: newTab }, '');
+      setActiveTabState(newTab);
+    }
+  };
+
+  const handleExitConfirmYes = () => {
+    window.history.go(-2); // Try to go back fully
+    setShowExitConfirm(false);
+  };
+
+  const handleExitConfirmNo = () => {
+    setShowExitConfirm(false);
+  };
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -480,13 +521,29 @@ export default function App() {
         </div>
       )}
 
+      {/* Exit Confirm Modal */}
+      <AnimatePresence>
+        {showExitConfirm && (
+          <div className="fixed inset-0 bg-black/60 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-2">홈페이지 종료</h2>
+              <p className="text-gray-500 mb-6 font-medium text-sm">정말 종료하시겠습니까?</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={handleExitConfirmNo} className="px-6 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors w-full">아니오</button>
+                <button onClick={handleExitConfirmYes} className="px-6 py-2.5 rounded-xl bg-[#FF6B6B] text-white font-bold hover:bg-[#FF5252] transition-colors w-full shadow-md">네</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="bg-[#FF9B9B] text-white p-6 shadow-md border-b-4 border-[#FF6B6B]/10 relative overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[5rem] gap-4 relative z-10">
-          <div className="text-center md:absolute md:left-1/2 md:-translate-x-1/2">
+          <button onClick={() => setActiveTab('letters')} className="text-center md:absolute md:left-1/2 md:-translate-x-1/2 cursor-pointer hover:opacity-90 transition-opacity">
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight m-0">{siteTitle}</h1>
             <p className="text-pink-100 mt-2 text-base md:text-lg">{siteSubtitle}</p>
-          </div>
+          </button>
           
           <div className="flex items-center gap-3 w-full justify-center md:w-auto md:justify-end md:ml-auto">
               {isAdmin ? (
@@ -709,6 +766,15 @@ export default function App() {
       <footer className="text-center py-8 text-gray-400 text-[10px] md:text-xs font-medium tracking-wider">
         {footerText}
       </footer>
+
+      {/* Scroll to Top Quick Menu */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-[#FF6B6B] text-white size-12 md:size-14 rounded-full shadow-xl flex items-center justify-center hover:bg-[#FF5252] hover:-translate-y-1 transition-all z-[100]"
+        aria-label="최상단으로 이동"
+      >
+        <span className="text-lg md:text-xl font-bold">▲</span>
+      </button>
 
       {/* Admin Dashboard Modal */}
       {showAdminDashboard && (

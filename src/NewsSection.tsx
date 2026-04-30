@@ -46,13 +46,15 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           title: post.title,
           content: post.content,
           thumbnail: post.thumbnail,
+          isNotice: post.isNotice || false,
         });
       } else {
         await addDoc(collection(db, 'news'), {
           title: post.title,
           content: post.content,
           thumbnail: post.thumbnail,
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          isNotice: post.isNotice || false,
         });
       }
       setEditingPost(null);
@@ -66,19 +68,12 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
   const handleDelete = async (id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     try {
-      console.log('Deleting doc with id:', id);
       await deleteDoc(doc(db, 'news', id));
-      console.log('Delete successful');
       setSelectedPost(null);
       fetchNews();
     } catch (err) {
-      console.error('Delete error:', err);
       alert('삭제 중 오류가 발생했습니다. 로그를 확인해주세요.');
-      try {
-          handleFirestoreError(err, OperationType.DELETE, `news/${id}`);
-      } catch (e) {
-          console.error(e);
-      }
+      try { handleFirestoreError(err, OperationType.DELETE, `news/${id}`); } catch(e){}
     }
   };
 
@@ -103,12 +98,16 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
               <button onClick={() => selectedPost.id && handleDelete(selectedPost.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={20}/></button>
             </div>
           )}
-          <h1 className="text-2xl md:text-4xl font-black text-gray-800 mb-4">{selectedPost.title}</h1>
-          <p className="text-sm text-gray-400 mb-8">{new Date(selectedPost.createdAt).toLocaleString()}</p>
+          
+          <h1 className="text-2xl md:text-4xl font-black text-gray-800 mb-4 flex items-center gap-3">
+            {selectedPost.isNotice && <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-md font-bold align-middle">공지</span>}
+            {selectedPost.title}
+          </h1>
+          <p className="text-sm text-gray-400 mb-8 pb-4 border-b border-gray-100">{new Date(selectedPost.createdAt).toLocaleString()}</p>
           
           {selectedPost.thumbnail && (
             <div className="mb-8 flex justify-center">
-              <img src={selectedPost.thumbnail} alt="thumbnail" className="w-[500px] h-[500px] object-cover rounded-2xl shadow-sm" />
+              <img src={selectedPost.thumbnail} alt="thumbnail" className="max-w-full md:max-w-2xl max-h-[500px] object-contain rounded-2xl shadow-sm" />
             </div>
           )}
 
@@ -121,10 +120,21 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
               {selectedPost.content}
             </Markdown>
           </div>
+          
+          {/* AdSense Placeholder Bottom */}
+          <div className="mt-12 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-xl flex items-center justify-center min-h-[100px] text-gray-400 text-sm">
+            Google AdSense Area (게시물 하단)
+          </div>
         </div>
       </motion.div>
     );
   }
+
+  const sortedNews = [...news].sort((a, b) => {
+    if (a.isNotice && !b.isNotice) return -1;
+    if (!a.isNotice && b.isNotice) return 1;
+    return b.createdAt - a.createdAt;
+  });
 
   return (
     <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -134,7 +144,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           <h2 className="text-xl md:text-2xl font-black text-gray-800 tracking-tight">일본 소식</h2>
         </div>
         {isAdmin && (
-          <button onClick={() => setEditingPost({ title: '', content: '', thumbnail: '', createdAt: 0 })} className="flex items-center gap-1 bg-[#4ECDC4] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl hover:bg-[#45B7AF] transition-all font-bold shadow-md">
+          <button onClick={() => setEditingPost({ title: '', content: '', thumbnail: '', createdAt: 0, isNotice: false })} className="flex items-center gap-1 bg-[#4ECDC4] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl hover:bg-[#45B7AF] transition-all font-bold shadow-md">
             <Plus size={16} />
             <span className="text-sm">새 글 쓰기</span>
           </button>
@@ -144,20 +154,49 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
       {news.length === 0 ? (
         <div className="text-center py-20 text-gray-400 font-medium">등록된 소식이 없습니다.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {news.map(post => (
-            <div key={post.id} onClick={() => setSelectedPost(post)} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden cursor-pointer hover:border-pink-300 hover:shadow-lg transition-all group">
-              {post.thumbnail && (
-                <div className="aspect-square overflow-hidden bg-gray-50 flex items-center justify-center">
-                  <img src={post.thumbnail} alt="thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-              )}
-              <div className="p-5">
-                <h3 className="text-lg font-bold text-gray-800 mb-2 truncate">{post.title}</h3>
-                <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</p>
-              </div>
-            </div>
-          ))}
+        <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+          {/* AdSense Placeholder Top List */}
+          <div className="p-4 border-b border-gray-100 bg-gray-50 text-center text-sm text-gray-400 border-dashed min-h-[90px] flex items-center justify-center">
+            Google AdSense Area (게시판 상단)
+          </div>
+        
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 hidden md:table-header-group border-b-2 border-gray-100">
+              <tr>
+                <th className="py-3 px-6 text-sm font-bold text-gray-500 w-20 text-center">번호</th>
+                <th className="py-3 px-6 text-sm font-bold text-gray-500">제목</th>
+                <th className="py-3 px-6 text-sm font-bold text-gray-500 w-32 text-center">작성일</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedNews.map((post, index) => (
+                <tr key={post.id} onClick={() => setSelectedPost(post)} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors group flex flex-col md:table-row">
+                  <td className="py-3 px-4 md:px-6 text-center text-gray-400 text-sm hidden md:table-cell">
+                    {post.isNotice ? <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-md font-bold">공지</span> : (sortedNews.length - index)}
+                  </td>
+                  <td className="py-3 px-4 md:px-6">
+                    <div className="flex items-center gap-2">
+                       {/* Mobile Notice Badge */}
+                      {post.isNotice && <span className="md:hidden bg-red-100 text-red-600 text-xs px-2 py-1 rounded-md font-bold whitespace-nowrap">공지</span>}
+                      <span className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1">{post.title}</span>
+                    </div>
+                    {/* Mobile Date */}
+                    <div className="text-xs text-gray-400 mt-1 md:hidden">
+                       {new Date(post.createdAt).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 md:px-6 text-center text-gray-500 text-sm hidden md:table-cell whitespace-nowrap">
+                    {new Date(post.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {/* AdSense Placeholder Bottom List */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50 text-center text-sm text-gray-400 border-dashed min-h-[90px] flex items-center justify-center">
+            Google AdSense Area (게시판 하단)
+          </div>
         </div>
       )}
     </motion.section>
@@ -168,6 +207,7 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
   const [thumbnail, setThumbnail] = useState(post.thumbnail || '');
+  const [isNotice, setIsNotice] = useState(post.isNotice || false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resizeImageSquare = (file: File, size: number): Promise<string> => {
@@ -216,6 +256,10 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">{post.id ? '소식 수정' : '새 소식 쓰기'}</h2>
+        <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+          <input type="checkbox" checked={isNotice} onChange={(e) => setIsNotice(e.target.checked)} className="w-4 h-4 text-red-500 accent-red-500" />
+          <span className="text-sm font-bold text-gray-700">공지로 등록 ('공지' 표시 및 최상단 노출)</span>
+        </label>
       </div>
 
       <div>
@@ -242,7 +286,7 @@ function NewsEditor({ post, onSave, onCancel }: { post: NewsPost, onSave: (p: Ne
 
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
         <button onClick={onCancel} className="px-5 py-2.5 rounded-xl text-gray-500 font-bold hover:bg-gray-100 transition-colors">취소</button>
-        <button onClick={() => onSave({ ...post, title, content, thumbnail })} className="px-5 py-2.5 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 shadow-md transition-colors">저장하기</button>
+        <button onClick={() => onSave({ ...post, title, content, thumbnail, isNotice })} className="px-5 py-2.5 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 shadow-md transition-colors">저장하기</button>
       </div>
     </div>
   );
