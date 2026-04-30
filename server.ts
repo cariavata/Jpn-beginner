@@ -58,7 +58,7 @@ async function startServer() {
   app.get("/sitemap.xml", async (req, res) => {
     const data = await getSeoDataFromFirestore();
     res.type('application/xml');
-    if (data.sitemapXml && data.sitemapXml.trim() !== '') {
+    if (data.sitemapXml && data.sitemapXml.trim() !== '' && data.sitemapXml.includes('<')) {
        res.send(data.sitemapXml);
     } else {
        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
@@ -104,7 +104,7 @@ async function startServer() {
     const data = await getSeoDataFromFirestore();
     const appData = await getAppDataFromFirestore();
     res.type('application/xml');
-    if (data.rssXml && data.rssXml.trim() !== '') {
+    if (data.rssXml && data.rssXml.trim() !== '' && data.rssXml.includes('<')) {
        res.send(data.rssXml);
     } else {
        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
