@@ -71,6 +71,31 @@ async function startServer() {
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>${domain}/letters</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${domain}/greetings</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${domain}/travel</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${domain}/daily</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${domain}/news</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
 </urlset>`);
     }
   });
@@ -97,6 +122,31 @@ async function startServer() {
       <title><![CDATA[${title} - 홈]]></title>
       <link>${domain}/</link>
       <description><![CDATA[${description}]]></description>
+    </item>
+    <item>
+      <title><![CDATA[${title} - 문자 마스터]]></title>
+      <link>${domain}/letters</link>
+      <description><![CDATA[일본어 히라가나 카타카나 연습 마스터]]></description>
+    </item>
+    <item>
+      <title><![CDATA[${title} - 필수 인사말]]></title>
+      <link>${domain}/greetings</link>
+      <description><![CDATA[일본어 기초 필수 인사말 100선]]></description>
+    </item>
+    <item>
+      <title><![CDATA[${title} - 여행 회화]]></title>
+      <link>${domain}/travel</link>
+      <description><![CDATA[공항, 식당, 호텔 등 일본 여행 필수 회화]]></description>
+    </item>
+    <item>
+      <title><![CDATA[${title} - 생활 표현]]></title>
+      <link>${domain}/daily</link>
+      <description><![CDATA[감정, 일상생활 일본어 표현 모음]]></description>
+    </item>
+    <item>
+      <title><![CDATA[${title} - 일본 소식]]></title>
+      <link>${domain}/news</link>
+      <description><![CDATA[가장 빠른 실시간 일본 소식]]></description>
     </item>
   </channel>
 </rss>`);

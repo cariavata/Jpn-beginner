@@ -8,6 +8,27 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { handleFirestoreError, OperationType } from './lib/firebase';
 
+function AdUnit() {
+  useEffect(() => {
+    try {
+      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+    } catch (e: any) {
+      if (!e?.message?.includes("already have ads")) {
+        console.error("AdSense error:", e);
+      }
+    }
+  }, []);
+
+  return (
+    <ins className="adsbygoogle w-full"
+         style={{ display: 'block' }}
+         data-ad-client="ca-pub-6799823492487492"
+         data-ad-slot=""
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  );
+}
+
 interface NewsPost {
   id?: string;
   title: string;
@@ -122,8 +143,8 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           </div>
           
           {/* AdSense Placeholder Bottom */}
-          <div className="mt-12 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-xl flex items-center justify-center min-h-[100px] text-gray-400 text-sm">
-            Google AdSense Area (게시물 하단)
+          <div className="w-full mt-4 flex justify-center">
+            <AdUnit />
           </div>
         </div>
       </motion.div>
@@ -156,8 +177,8 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
       ) : (
         <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-sm">
           {/* AdSense Placeholder Top List */}
-          <div className="p-4 border-b border-gray-100 bg-gray-50 text-center text-sm text-gray-400 border-dashed min-h-[90px] flex items-center justify-center">
-            Google AdSense Area (게시판 상단)
+          <div className="w-full flex justify-center">
+            <AdUnit />
           </div>
         
           <table className="w-full text-left border-collapse">
@@ -194,8 +215,8 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
           </table>
           
           {/* AdSense Placeholder Bottom List */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50 text-center text-sm text-gray-400 border-dashed min-h-[90px] flex items-center justify-center">
-            Google AdSense Area (게시판 하단)
+          <div className="w-full flex justify-center">
+            <AdUnit />
           </div>
         </div>
       )}

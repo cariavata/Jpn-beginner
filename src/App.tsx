@@ -90,7 +90,17 @@ const fadeAudio = (audio: HTMLAudioElement, targetVolume: number, duration: numb
 };
 
 export default function App() {
-  const [activeTab, setActiveTabState] = useState('letters');
+  const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.substring(1);
+      if (['letters', 'greetings', 'travel', 'daily', 'news'].includes(path)) {
+        return path;
+      }
+    }
+    return 'letters';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getInitialTab());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const activeTabRef = useRef(activeTab);
@@ -100,13 +110,15 @@ export default function App() {
 
   useEffect(() => {
     // History manipulation for back button
-    window.history.replaceState({ isRoot: true }, '');
-    window.history.pushState({ tab: activeTabRef.current }, '');
+    let currentPath = window.location.pathname;
+    if (currentPath === '/') currentPath = `/${activeTabRef.current}`;
+    window.history.replaceState({ isRoot: true }, '', currentPath);
+    window.history.pushState({ tab: activeTabRef.current }, '', `/${activeTabRef.current}`);
 
     const handlePopState = (e: PopStateEvent) => {
       if (e.state && e.state.isRoot) {
         setShowExitConfirm(true);
-        window.history.pushState({ tab: activeTabRef.current }, '');
+        window.history.pushState({ tab: activeTabRef.current }, '', `/${activeTabRef.current}`);
       } else if (e.state && e.state.tab) {
         setActiveTabState(e.state.tab);
         setShowExitConfirm(false);
@@ -119,7 +131,7 @@ export default function App() {
 
   const setActiveTab = (newTab: string) => {
     if (newTab !== activeTab) {
-      window.history.pushState({ tab: newTab }, '');
+      window.history.pushState({ tab: newTab }, '', `/${newTab}`);
       setActiveTabState(newTab);
     }
   };
@@ -537,54 +549,57 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <header className="bg-[#FF9B9B] text-white p-6 shadow-md border-b-4 border-[#FF6B6B]/10 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[5rem] gap-4 relative z-10">
-          <button onClick={() => setActiveTab('letters')} className="text-center md:absolute md:left-1/2 md:-translate-x-1/2 cursor-pointer hover:opacity-90 transition-opacity">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight m-0">{siteTitle}</h1>
-            <p className="text-pink-100 mt-2 text-base md:text-lg">{siteSubtitle}</p>
-          </button>
-          
-          <div className="flex items-center gap-3 w-full justify-center md:w-auto md:justify-end md:ml-auto">
-              {isAdmin ? (
-                 <div className="flex items-center gap-2">
-                   <button 
-                     onClick={() => setShowAdminDashboard(true)}
-                     className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all border-2 bg-indigo-500 text-white border-indigo-600 font-bold hover:bg-indigo-400 shadow-sm"
-                   >
-                     <Settings size={16} />
-                     <span className="text-xs md:text-sm font-bold tracking-wider hidden md:inline">설정 및 통계</span>
-                   </button>
-                   <button 
-                     onClick={() => setIsAdmin(false)}
-                     className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all border-2 bg-yellow-400 text-yellow-900 border-yellow-500 font-bold hover:bg-yellow-300 shadow-sm"
-                   >
-                     <span className="text-xs md:text-sm font-bold tracking-wider">관리자 종료</span>
-                   </button>
-                 </div>
-              ) : (
-                 <button 
-                   onClick={() => setShowAdminLogin(true)}
-                   className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all border-2 bg-white/20 text-white border-white/30 hover:bg-white/30"
-                 >
-                   <Lock size={16} />
-                   <span className="text-sm font-bold tracking-wider hidden md:inline">관리자</span>
-                 </button>
-              )}
-
+      {/* Sticky Header Wrapper */}
+      <div className="sticky top-0 z-50 shadow-md">
+        {/* Header */}
+        <header className="bg-[#FF9B9B] text-white p-6 border-b-4 border-[#FF6B6B]/10 relative overflow-hidden">
+          <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[5rem] gap-4 relative z-10">
+            <button onClick={() => setActiveTab('letters')} className="text-center md:absolute md:left-1/2 md:-translate-x-1/2 cursor-pointer hover:opacity-90 transition-opacity">
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight m-0">{siteTitle}</h1>
+              <p className="text-pink-100 mt-2 text-base md:text-lg">{siteSubtitle}</p>
+            </button>
             
+            <div className="flex items-center gap-3 w-full justify-center md:w-auto md:justify-end md:ml-auto">
+                {isAdmin ? (
+                   <div className="flex items-center gap-2">
+                     <button 
+                       onClick={() => setShowAdminDashboard(true)}
+                       className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all border-2 bg-indigo-500 text-white border-indigo-600 font-bold hover:bg-indigo-400 shadow-sm"
+                     >
+                       <Settings size={16} />
+                       <span className="text-xs md:text-sm font-bold tracking-wider hidden md:inline">설정 및 통계</span>
+                     </button>
+                     <button 
+                       onClick={() => setIsAdmin(false)}
+                       className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all border-2 bg-yellow-400 text-yellow-900 border-yellow-500 font-bold hover:bg-yellow-300 shadow-sm"
+                     >
+                       <span className="text-xs md:text-sm font-bold tracking-wider">관리자 종료</span>
+                     </button>
+                   </div>
+                ) : (
+                   <button 
+                     onClick={() => setShowAdminLogin(true)}
+                     className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all border-2 bg-white/20 text-white border-white/30 hover:bg-white/30"
+                   >
+                     <Lock size={16} />
+                     <span className="text-sm font-bold tracking-wider hidden md:inline">관리자</span>
+                   </button>
+                )}
+  
+              
+            </div>
           </div>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-[#FFB3B3] p-2 md:p-3 flex justify-center gap-2 md:gap-4 border-b border-[#FF9B9B] sticky top-0 z-50 overflow-x-auto whitespace-nowrap scrollbar-hide">
-        <TabButton active={activeTab === 'letters'} onClick={() => setActiveTab('letters')} label={tabLetterLabel} />
-        <TabButton active={activeTab === 'greetings'} onClick={() => setActiveTab('greetings')} label={tabGreetingLabel} />
-        <TabButton active={activeTab === 'travel'} onClick={() => setActiveTab('travel')} label={tabTravelLabel} />
-        <TabButton active={activeTab === 'daily'} onClick={() => setActiveTab('daily')} label={tabDailyLabel} />
-        <TabButton active={activeTab === 'news'} onClick={() => setActiveTab('news')} label={tabNewsLabel} />
-              </nav>
+        </header>
+  
+        {/* Navigation */}
+        <nav className="bg-[#FFB3B3] p-2 md:p-3 flex justify-center gap-2 md:gap-4 border-b border-[#FF9B9B] overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <TabButton active={activeTab === 'letters'} onClick={() => setActiveTab('letters')} label={tabLetterLabel} />
+          <TabButton active={activeTab === 'greetings'} onClick={() => setActiveTab('greetings')} label={tabGreetingLabel} />
+          <TabButton active={activeTab === 'travel'} onClick={() => setActiveTab('travel')} label={tabTravelLabel} />
+          <TabButton active={activeTab === 'daily'} onClick={() => setActiveTab('daily')} label={tabDailyLabel} />
+          <TabButton active={activeTab === 'news'} onClick={() => setActiveTab('news')} label={tabNewsLabel} />
+        </nav>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto my-6 p-4 md:p-8 bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border-4 border-[#FFE4E1] mx-4 md:mx-auto">
@@ -756,7 +771,7 @@ export default function App() {
       <div className="w-full max-w-4xl mx-auto mt-8 mb-4 px-4">
         {/* Google AdSense */}
         <ins className="adsbygoogle"
-             style={{ display: 'block', minHeight: '90px' }}
+             style={{ display: 'block' }}
              data-ad-client="ca-pub-6799823492487492"
              data-ad-slot=""
              data-ad-format="auto"
