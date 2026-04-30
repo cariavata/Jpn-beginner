@@ -637,8 +637,18 @@ export default function App() {
         </nav>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto my-6 p-4 md:p-8 bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border-4 border-[#FFE4E1] mx-4 md:mx-auto">
+      {/* Main Content Wrapper */}
+      <div className="flex justify-center max-w-[1440px] mx-auto w-full px-2 gap-4 lg:gap-8">
+        
+        {/* Left Side Ad (Desktop) */}
+        <aside className="hidden xl:block w-[160px] shrink-0 pt-6">
+          <div className="sticky top-40">
+            <AdUnit className="w-[160px] h-[600px]" />
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="w-full max-w-5xl my-6 p-4 md:p-8 bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border-4 border-[#FFE4E1] flex-1">
         <div className="bg-[#FFF8E1] border border-[#FFECB3] p-4 rounded-2xl text-xs md:text-sm text-[#795548] mb-6 flex items-start md:items-center gap-3">
           <span className="text-xl md:text-2xl flex-shrink-0">💡</span>
           <p className="leading-snug">
@@ -769,29 +779,35 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {(activeTab === 'greetings' ? greetingsData : activeTab === 'travel' ? travelData : dailyData).map((item, i) => (
-                  <SentenceCard 
-                    key={`${activeTab}-${i}`} 
-                    index={i} 
-                    item={item} 
-                    onPlay={speakText}
-                    isAdmin={isAdmin} 
-                    isSelected={selectedItems.includes(i)}
-                    onToggleSelect={() => {
-                      setSelectedItems(prev => 
-                        prev.includes(i) ? prev.filter(idx => idx !== i) : [...prev, i]
-                      )
-                    }}
-                    onEdit={() => setEditingItem({tab: activeTab, index: i, item})}
-                    onDelete={() => {
-                      if(window.confirm('정말 삭제하시겠습니까?')) {
-                        const remover = (prev: any[]) => prev.filter((_, idx) => idx !== i);
-                        if(activeTab === 'greetings') setGreetingsData(remover);
-                        if(activeTab === 'travel') setTravelData(remover);
-                        if(activeTab === 'daily') setDailyData(remover);
-                        setSelectedItems(prev => prev.filter(idx => idx !== i));
-                      }
-                    }}
-                  />
+                  <React.Fragment key={`${activeTab}-${i}`}>
+                    {i > 0 && i % 5 === 0 && (
+                      <div className="block md:hidden col-span-1 border border-gray-100 rounded-xl overflow-hidden shadow-sm flex justify-center items-center py-2 bg-gray-50/30">
+                        <AdUnit className="w-full min-h-[100px]" />
+                      </div>
+                    )}
+                    <SentenceCard 
+                      index={i} 
+                      item={item} 
+                      onPlay={speakText}
+                      isAdmin={isAdmin} 
+                      isSelected={selectedItems.includes(i)}
+                      onToggleSelect={() => {
+                        setSelectedItems(prev => 
+                          prev.includes(i) ? prev.filter(idx => idx !== i) : [...prev, i]
+                        )
+                      }}
+                      onEdit={() => setEditingItem({tab: activeTab, index: i, item})}
+                      onDelete={() => {
+                        if(window.confirm('정말 삭제하시겠습니까?')) {
+                          const remover = (prev: any[]) => prev.filter((_, idx) => idx !== i);
+                          if(activeTab === 'greetings') setGreetingsData(remover);
+                          if(activeTab === 'travel') setTravelData(remover);
+                          if(activeTab === 'daily') setDailyData(remover);
+                          setSelectedItems(prev => prev.filter(idx => idx !== i));
+                        }
+                      }}
+                    />
+                  </React.Fragment>
                 ))}
               </div>
             </motion.section>
@@ -804,7 +820,15 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <div className="w-full max-w-4xl mx-auto px-4 flex justify-center">
+      {/* Right Side Ad (Desktop) */}
+      <aside className="hidden xl:block w-[160px] shrink-0 pt-6">
+        <div className="sticky top-40">
+          <AdUnit className="w-[160px] h-[600px]" />
+        </div>
+      </aside>
+    </div>
+
+    <div className="w-full max-w-4xl mx-auto px-4 flex justify-center">
         {/* Google AdSense */}
         <ins className="adsbygoogle w-full mt-8 mb-4"
              style={{ display: 'block' }}
@@ -1171,6 +1195,27 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+function AdUnit({ className }: { className?: string }) {
+  useEffect(() => {
+    try {
+      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+    } catch (e: any) {
+      if (!e?.message?.includes("already have ads")) {
+        console.error("AdSense error:", e);
+      }
+    }
+  }, []);
+
+  return (
+    <ins className={`adsbygoogle ${className || ''}`}
+         style={{ display: 'block' }}
+         data-ad-client="ca-pub-6799823492487492"
+         data-ad-slot=""
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
   );
 }
 
