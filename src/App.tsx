@@ -11,6 +11,7 @@ import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { NewsSection } from './NewsSection';
+import { HomeSection } from './HomeSection';
 
 // --- Data Section ---
 
@@ -93,11 +94,11 @@ export default function App() {
   const getInitialTab = () => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.substring(1);
-      if (['letters', 'greetings', 'travel', 'daily', 'news'].includes(path)) {
+      if (['home', 'letters', 'greetings', 'travel', 'daily', 'news'].includes(path)) {
         return path;
       }
     }
-    return 'letters';
+    return 'home';
   };
 
   const [activeTab, setActiveTabState] = useState(getInitialTab());
@@ -590,7 +591,7 @@ export default function App() {
         {/* Header */}
         <header className="bg-[#FF9B9B] text-white p-6 border-b-4 border-[#FF6B6B]/10 relative overflow-hidden">
           <div className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[5rem] gap-4 relative z-10">
-            <button onClick={() => setActiveTab('letters')} className="text-center md:absolute md:left-1/2 md:-translate-x-1/2 cursor-pointer hover:opacity-90 transition-opacity">
+            <button onClick={() => setActiveTab('home')} className="text-center md:absolute md:left-1/2 md:-translate-x-1/2 cursor-pointer hover:opacity-90 transition-opacity">
               <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight m-0">{siteTitle}</h1>
               <p className="text-pink-100 mt-2 text-base md:text-lg">{siteSubtitle}</p>
             </button>
@@ -629,6 +630,7 @@ export default function App() {
   
         {/* Navigation */}
         <nav className="bg-[#FFB3B3] p-2 md:p-3 flex justify-start md:justify-center gap-2 md:gap-4 border-b border-[#FF9B9B] overflow-x-auto whitespace-nowrap scrollbar-hide px-4">
+          <TabButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} label="홈" />
           <TabButton active={activeTab === 'letters'} onClick={() => setActiveTab('letters')} label={tabLetterLabel} />
           <TabButton active={activeTab === 'greetings'} onClick={() => setActiveTab('greetings')} label={tabGreetingLabel} />
           <TabButton active={activeTab === 'travel'} onClick={() => setActiveTab('travel')} label={tabTravelLabel} />
@@ -649,14 +651,29 @@ export default function App() {
 
         {/* Main Content */}
         <main className="w-full max-w-5xl my-6 p-4 md:p-8 bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border-4 border-[#FFE4E1] flex-1">
-        <div className="bg-[#FFF8E1] border border-[#FFECB3] p-4 rounded-2xl text-xs md:text-sm text-[#795548] mb-6 flex items-start md:items-center gap-3">
-          <span className="text-xl md:text-2xl flex-shrink-0">💡</span>
-          <p className="leading-snug">
-            <strong>Tip:</strong> 글자 칸을 클릭하면 발음을 들을 수 있습니다! 소리가 나지 않는다면 <b>볼륨</b>과 <b>무음 모드</b>를 확인해 주세요.<br/>(모바일 네이버, 카카오톡 인앱 브라우저에서는 음성이 나오지 않을 수 있으니 크롬 및 엣지 브라우저에서 실행해 주시기 바랍니다.)
-          </p>
-        </div>
+        {activeTab !== 'home' && activeTab !== 'news' && (
+          <div className="bg-[#FFF8E1] border border-[#FFECB3] p-4 rounded-2xl text-xs md:text-sm text-[#795548] mb-6 flex items-start md:items-center gap-3">
+            <span className="text-xl md:text-2xl flex-shrink-0">💡</span>
+            <p className="leading-snug">
+              <strong>Tip:</strong> 글자 칸을 클릭하면 발음을 들을 수 있습니다! 소리가 나지 않는다면 <b>볼륨</b>과 <b>무음 모드</b>를 확인해 주세요.<br/>(모바일 네이버, 카카오톡 인앱 브라우저에서는 음성이 나오지 않을 수 있으니 크롬 및 엣지 브라우저에서 실행해 주시기 바랍니다.)
+            </p>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
+          {activeTab === 'home' && (
+            <HomeSection 
+              setActiveTab={setActiveTab} 
+              labels={{
+                letters: tabLetterLabel,
+                greetings: tabGreetingLabel,
+                travel: tabTravelLabel,
+                daily: tabDailyLabel,
+                news: tabNewsLabel
+              }} 
+            />
+          )}
+
           {activeTab === 'letters' && (
             <motion.section
               key="letters"
