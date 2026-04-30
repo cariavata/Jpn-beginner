@@ -48,6 +48,42 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
     fetchNews();
   }, []);
 
+  useEffect(() => {
+    if (news.length === 0) return;
+    const pathParts = window.location.pathname.substring(1).split('/');
+    if (pathParts[0] === 'news' && pathParts[1]) {
+      const postId = pathParts[1];
+      const post = news.find(p => p.id === postId);
+      if (post) {
+        setSelectedPost(post);
+      }
+    }
+  }, [news]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathParts = window.location.pathname.substring(1).split('/');
+      if (pathParts[0] === 'news' && pathParts[1]) {
+        const post = news.find(p => p.id === pathParts[1]);
+        if (post) setSelectedPost(post);
+      } else {
+        setSelectedPost(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [news]);
+
+  const openPost = (post: NewsPost) => {
+    window.history.pushState({ tab: 'news' }, '', `/news/${post.id}`);
+    setSelectedPost(post);
+  };
+
+  const closePost = () => {
+    window.history.pushState({ tab: 'news' }, '', `/news`);
+    setSelectedPost(null);
+  };
+
   const fetchNews = async () => {
     try {
       const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
@@ -91,7 +127,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     try {
       await deleteDoc(doc(db, 'news', id));
-      setSelectedPost(null);
+      closePost();
       fetchNews();
     } catch (err) {
       alert('삭제 중 오류가 발생했습니다. 로그를 확인해주세요.');
@@ -110,7 +146,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
   if (selectedPost) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-        <button onClick={() => setSelectedPost(null)} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 font-bold mb-4">
+        <button onClick={closePost} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 font-bold mb-4">
           <ChevronLeft size={20} /> 목록으로 돌아가기
         </button>
         <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -186,7 +222,7 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
             </thead>
             <tbody>
               {sortedNews.map((post, index) => (
-                <tr key={post.id} onClick={() => setSelectedPost(post)} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors group flex flex-col md:table-row">
+                <tr key={post.id} onClick={() => openPost(post)} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors group flex flex-col md:table-row">
                   <td className="py-3 px-4 md:px-6 text-center text-gray-400 text-sm hidden md:table-cell">
                     {post.isNotice ? <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-md font-bold">공지</span> : (sortedNews.length - index)}
                   </td>

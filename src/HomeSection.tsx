@@ -14,7 +14,7 @@ interface NewsPost {
 }
 
 interface HomeSectionProps {
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string, subPath?: string) => void;
   labels: {
     letters: string;
     greetings: string;
@@ -135,7 +135,7 @@ export function HomeSection({ setActiveTab, labels }: HomeSectionProps) {
           {topNews.length > 0 ? topNews.map(news => (
             <div 
               key={news.id} 
-              onClick={() => setActiveTab('news')}
+              onClick={() => setActiveTab('news', news.id)}
               className="bg-white p-4 rounded-[1.5rem] md:rounded-[2rem] border-2 border-transparent hover:border-orange-100 flex gap-4 items-center group cursor-pointer shadow-sm hover:shadow-md transition-all"
             >
               <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 bg-gray-50 rounded-xl md:rounded-2xl overflow-hidden relative border border-gray-100">

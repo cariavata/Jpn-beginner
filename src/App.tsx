@@ -93,7 +93,8 @@ const fadeAudio = (audio: HTMLAudioElement, targetVolume: number, duration: numb
 export default function App() {
   const getInitialTab = () => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname.substring(1);
+      const pathParts = window.location.pathname.substring(1).split('/');
+      const path = pathParts[0];
       if (['home', 'letters', 'greetings', 'travel', 'daily', 'news'].includes(path)) {
         return path;
       }
@@ -112,16 +113,27 @@ export default function App() {
   useEffect(() => {
     // History manipulation for back button
     let currentPath = window.location.pathname;
-    if (currentPath === '/') currentPath = `/${activeTabRef.current}`;
-    window.history.replaceState({ isRoot: true }, '', currentPath);
-    window.history.pushState({ tab: activeTabRef.current }, '', `/${activeTabRef.current}`);
+    if (currentPath === '/') {
+      currentPath = `/${activeTabRef.current}`;
+      window.history.replaceState({ isRoot: true }, '', currentPath);
+      window.history.pushState({ tab: activeTabRef.current }, '', currentPath);
+    } else {
+      window.history.replaceState({ isRoot: true }, '', currentPath);
+      window.history.pushState({ tab: activeTabRef.current }, '', currentPath);
+    }
 
     const handlePopState = (e: PopStateEvent) => {
       if (e.state && e.state.isRoot) {
         setShowExitConfirm(true);
-        window.history.pushState({ tab: activeTabRef.current }, '', `/${activeTabRef.current}`);
+        window.history.pushState({ tab: activeTabRef.current }, '', window.location.pathname);
       } else if (e.state && e.state.tab) {
         setActiveTabState(e.state.tab);
+        setShowExitConfirm(false);
+      } else {
+        const pathParts = window.location.pathname.substring(1).split('/');
+        if (['home', 'letters', 'greetings', 'travel', 'daily', 'news'].includes(pathParts[0])) {
+          setActiveTabState(pathParts[0]);
+        }
         setShowExitConfirm(false);
       }
     };
@@ -130,9 +142,13 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const setActiveTab = (newTab: string) => {
-    if (newTab !== activeTab) {
-      window.history.pushState({ tab: newTab }, '', `/${newTab}`);
+  const setActiveTab = (newTab: string, subPath?: string) => {
+    if (newTab !== activeTab || subPath) {
+      if (subPath) {
+        window.history.pushState({ tab: newTab }, '', `/${newTab}/${subPath}`);
+      } else {
+        window.history.pushState({ tab: newTab }, '', `/${newTab}`);
+      }
       setActiveTabState(newTab);
     }
   };
