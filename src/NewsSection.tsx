@@ -74,6 +74,18 @@ export function NewsSection({ isAdmin }: { isAdmin: boolean }) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [news]);
 
+  useEffect(() => {
+    if (selectedPost) {
+      document.title = `${selectedPost.title} | 일본 소식 - 처음 만나는 일본어 🌸`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', selectedPost.content.replace(/[#*`>]/g, '').slice(0, 150));
+      }
+    } else {
+      document.title = '일본 소식 | 처음 만나는 일본어 🌸';
+    }
+  }, [selectedPost]);
+
   const openPost = (post: NewsPost) => {
     window.history.pushState({ tab: 'news' }, '', `/news/${post.id}`);
     setSelectedPost(post);

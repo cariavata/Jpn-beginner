@@ -108,6 +108,21 @@ export default function App() {
   const activeTabRef = useRef(activeTab);
   useEffect(() => {
     activeTabRef.current = activeTab;
+
+    const titleMap: Record<string, string> = {
+      home: '처음 만나는 일본어 🌸',
+      letters: '글자 익히기 (히라가나/가타카나) | 처음 만나는 일본어 🌸',
+      greetings: '기본 인사말 | 처음 만나는 일본어 🌸',
+      travel: '여행 회화 | 처음 만나는 일본어 🌸',
+      daily: '일상 회화 | 처음 만나는 일본어 🌸',
+      news: '일본 소식 | 처음 만나는 일본어 🌸'
+    };
+    const pathParts = window.location.pathname.substring(1).split('/');
+    if (pathParts[0] === 'news' && pathParts[1]) {
+      // NewsSection updates the specific post title
+    } else if (titleMap[activeTab]) {
+      document.title = titleMap[activeTab];
+    }
   }, [activeTab]);
 
   useEffect(() => {
