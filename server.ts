@@ -201,6 +201,7 @@ async function startServer() {
     <meta name="description" content="${escapeHtml(pageDesc)}" />
     <meta name="keywords" content="일본어, 일본어 공부, 히라가나, 가타카나, 일본어 회화, 일본 여행 회화, 일본 소식, 일본 뉴스, 기초 일본어" />
     <meta name="robots" content="index, follow" />
+    <meta name="google-adsense-account" content="ca-pub-6799823492487492" />
     <link rel="canonical" href="${fullCanonicalUrl}" />
     <meta property="og:type" content="${ogType}" />
     <meta property="og:site_name" content="${escapeHtml(defaultSiteTitle)}" />
